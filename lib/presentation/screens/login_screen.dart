@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:store_audit/presentation/screens/home_screen.dart';
+
+import '../../utility/assets_path.dart';
 
 class LoginWidget extends StatefulWidget {
   @override
@@ -18,70 +21,72 @@ class _LoginWidgetState extends State<LoginWidget> {
 
   // Navigate to the next screen
   void _navigateToNextScreen(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => HomeScreen(),
-      ),
-    );
+    Get.off(() => const HomeScreen());
+    // Navigator.push(
+    //   context,
+    //   MaterialPageRoute(
+    //     builder: (context) => const HomeScreen(),
+    //   ),
+    // );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF3F4F6),
+      backgroundColor: const Color(0xFFF3F4F6),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // App Logo
-            Container(
-              width: 95,
-              height: 95,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(15),
-                image: DecorationImage(
-                  image: AssetImage('assets/images/splash_logo.png'),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-            SizedBox(height: 15),
+            // Container(
+            //   width: 95,
+            //   height: 95,
+            //   decoration: BoxDecoration(
+            //     borderRadius: BorderRadius.circular(15),
+            //     image: const DecorationImage(
+            //       image: AssetImage('assets/images/splash_logo.png'),
+            //       fit: BoxFit.cover,
+            //     ),
+            //   ),
+            // ),
+            const SizedBox(height: 15),
 
             // App Title
             Image.asset(
-              'assets/images/splash_logo.png',
+              AssetsPath.appLogoSvg,
               width: 275,
               fit: BoxFit.fitWidth,
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 15),
 
             // Subtitle
-            Text(
+            const Text(
               'Data Collection Application',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Color(0xFF1E232C),
+                //color: Color(0xFF1E232C),
+                color: Colors.amber,
                 fontFamily: 'Lato',
                 fontSize: 19.5,
                 letterSpacing: 0.6,
-                fontWeight: FontWeight.normal,
+                fontWeight: FontWeight.bold,
                 height: 1.5,
               ),
             ),
-            SizedBox(height: 40),
+            const SizedBox(height: 40),
 
             // Input Field
             Container(
               width: 343,
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(15),
-                color: Color(0xFFEAEFF6),
+                color: const Color(0xFFEAEFF6),
               ),
               child: TextField(
                 controller: _auditorIdController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   border: InputBorder.none,
                   hintText: 'Give auditor ID:',
                   hintStyle: TextStyle(
@@ -93,7 +98,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                 ),
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
 
             // Login Button
             GestureDetector(
@@ -105,7 +110,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                 } else {
                   // Show a message if the input is empty
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Please enter an Auditor ID')),
+                    const SnackBar(content: Text('Please enter an Auditor ID')),
                   );
                 }
               },
@@ -115,9 +120,9 @@ class _LoginWidgetState extends State<LoginWidget> {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(50),
-                  color: Color(0xFF314CA3),
+                  color: const Color(0xFF314CA3),
                 ),
-                child: Text(
+                child: const Text(
                   'Log In',
                   style: TextStyle(
                     color: Colors.white,

@@ -9,6 +9,7 @@ class StoreAudit extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
+      debugShowCheckedModeBanner: false,
       home: SplashScreen(),
       theme: ThemeData(
         colorSchemeSeed: AppColors.primaryColor,

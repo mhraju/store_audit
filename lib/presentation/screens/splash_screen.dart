@@ -33,10 +33,11 @@ class _SplashScreenState extends State<SplashScreen> {
           const Spacer(),
           Image.asset(
             AssetsPath.appLogoSvg, // Add your logo in assets
-            height: 150, // Adjust size
+            height: 100,
+            fit: BoxFit.contain, // Adjust size
           ),
           const Spacer(),
-          CircularProgressIndicator(),
+          const CircularProgressIndicator(),
           const SizedBox(
             height: 16,
           ),
