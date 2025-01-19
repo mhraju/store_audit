@@ -1,45 +1,17 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:store_audit/db/database_manager.dart';
 import 'package:store_audit/presentation/screens/fmcg_sd.dart';
-import 'package:store_audit/presentation/screens/store_list.dart';
+import 'package:store_audit/presentation/screens/fmcg_sd_store_details.dart';
+import 'package:store_audit/presentation/screens/home_screen_two.dart';
+import 'package:store_audit/presentation/screens/store_close.dart';
+import 'package:store_audit/service/file_upload_download.dart';
 import 'package:store_audit/utility/assets_path.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:sqflite/sqflite.dart';
 
-// Function to copy the database from assets to a writable directory
-Future<String> copyDatabase() async {
-  try {
-    final documentsDirectory = await getApplicationDocumentsDirectory();
-    final dbPath = '${documentsDirectory.path}/store.sqlite';
-
-    if (!File(dbPath).existsSync()) {
-      final data = await rootBundle.load('assets/store.sqlite');
-      final bytes =
-          data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
-
-      await File(dbPath).writeAsBytes(bytes);
-    }
-
-    return dbPath;
-  } catch (e) {
-    throw Exception('Failed to copy database: $e');
-  }
-}
-
-// Function to fetch data from the database
-Future<List<Map<String, dynamic>>> fetchStores() async {
-  try {
-    final dbPath = await copyDatabase();
-    final db = await openDatabase(dbPath);
-    final stores = await db.query('stores');
-    await db.close();
-    return stores;
-  } catch (e) {
-    throw Exception('Failed to fetch stores: $e');
-  }
-}
+import '../../service/connectivity.dart';
+import '../../utility/app_colors.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -49,21 +21,95 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  Future<List<Map<String, dynamic>>>? _storeData;
+  final ConnectionCheck checkConnection = ConnectionCheck();
+  final DatabaseManager dbManager = DatabaseManager();
+  final FileUploadDownload fileUploadDownload = FileUploadDownload();
+  Future<List<Map<String, dynamic>>>? _storeList;
   String _auditorId = '';
+  String? _dbPath;
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _loadAuditorId();
-    _storeData = fetchStores();
+    _loadDbpath();
   }
 
-  Future<void> _loadAuditorId() async {
-    final prefs = await SharedPreferences.getInstance();
+  Future<void> _loadDbpath() async {
     setState(() {
-      _auditorId = prefs.getString('auditorId') ?? 'No ID Found';
+      _isLoading = true; // Show loading indicator
     });
+
+    final prefs = await SharedPreferences.getInstance();
+    final dbPath = prefs.getString('dbPath');
+
+    String? pDbPath = prefs.getString('databasePath');
+
+    //print('newPath: $dbPath ....   oldPath: $pDbPath');
+
+    if (dbPath != null && dbPath.isNotEmpty) {
+      _dbPath = dbPath;
+      _storeList = loadDB();
+    } else {
+      _dbPath = null;
+      _storeList = fetchStoresFromServer();
+    }
+
+    setState(() {
+      _isLoading = false; // Hide loading indicator
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> fetchStoresFromServer() async {
+    try {
+      setState(() {
+        _isLoading = true; // Show loading indicator
+      });
+
+      final dbPath = await dbManager.downloadAndSaveUserDatabase();
+      _dbPath = dbPath;
+      final db = await dbManager.loadDatabase(dbPath);
+      final stores = await db.query('stores');
+      await db.close();
+      _saveDbPath(dbPath);
+      _showSnackBar("Store updated");
+
+      return stores;
+    } catch (e) {
+      print('Failed to fetch stores: $e');
+      return [];
+    } finally {
+      setState(() {
+        _isLoading = false; // Hide loading indicator
+      });
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> loadDB() async {
+    try {
+      setState(() {
+        _isLoading = true; // Show loading indicator
+      });
+
+      final db = await dbManager.loadDatabase(_dbPath!);
+      final stores = await db.query('stores');
+      await db.close();
+      _showSnackBar("Store loaded");
+
+      return stores;
+    } catch (e) {
+      print('Failed to load stores: $e');
+      return [];
+    } finally {
+      setState(() {
+        _isLoading = false; // Hide loading indicator
+      });
+    }
+  }
+
+  Future<void> _saveDbPath(String dbPath) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('dbPath', dbPath);
   }
 
   Future<bool> _onWillPop() async {
@@ -78,9 +124,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: const Text('Cancel'),
               ),
               TextButton(
-                onPressed: () {
-                  SystemNavigator.pop();
-                },
+                onPressed: () => SystemNavigator.pop(),
                 child: const Text('Exit'),
               ),
             ],
@@ -91,101 +135,156 @@ class _HomeScreenState extends State<HomeScreen> {
     return shouldClose;
   }
 
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  void _syncDatabase() async {
+    try {
+      // await fetchStoresFromServer();
+      await checkConnection.checkConnection(context);
+      // await fileUploadDownload.uploadFile(context);
+      // await fileUploadDownload.uploadImages(context);
+      // _showSnackBar('Database synchronized successfully.');
+    } catch (e) {
+      _showSnackBar('Error syncing database: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: AppColors.appBarColor,
           elevation: 0,
-          automaticallyImplyLeading: false,
-          title: const Text(
-            'Index',
-            style: TextStyle(color: Colors.black),
+          title: SvgPicture.asset(
+            AssetsPath.appBarLogoSvg, // Replace with your SVG file path
+            width: 260,
+            fit: BoxFit.fitWidth, // Adjust size as needed
           ),
-          centerTitle: false,
+          automaticallyImplyLeading: false,
           actions: [
             IconButton(
               icon: const Icon(Icons.sync, color: Colors.black),
-              onPressed: () {
-                // Add sync functionality if needed
-              },
+              onPressed: _syncDatabase,
             ),
           ],
         ),
-        body: SingleChildScrollView(
-          child: Column(
-            children: [
-              const SizedBox(height: 96),
-              // Logo
-              // App Title
-              Image.asset(
-                AssetsPath.appLogoSvg,
-                width: 275,
-                fit: BoxFit.fitWidth,
-              ),
-              const SizedBox(height: 10),
+        body: Stack(
+          children: [
+            // Main content
+            FutureBuilder<List<Map<String, dynamic>>>(
+              future: _storeList,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'Error loading stores: ${snapshot.error}',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  );
+                } else if (snapshot.hasData) {
+                  final storeList = snapshot.data!;
+                  if (storeList.isEmpty) {
+                    return const Center(child: Text('No stores found.'));
+                  }
+                  return _buildHomeContent(storeList);
+                } else {
+                  return const Center(
+                    child: Text('Store data is not available yet.'),
+                  );
+                }
+              },
+            ),
 
-              // Subtitle
-              const Text(
-                'Data Collection Application',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  //color: Color(0xFF1E232C),
-                  color: Colors.amber,
-                  fontFamily: 'Lato',
-                  fontSize: 19.5,
-                  letterSpacing: 0.6,
-                  fontWeight: FontWeight.bold,
-                  height: 1.5,
+            // Full-screen loading overlay
+            if (_isLoading)
+              Container(
+                color: Colors.black.withOpacity(0.5), // Dim background
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    color: Colors.white, // Visible spinner
+                  ),
                 ),
               ),
-              const SizedBox(height: 40),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _buildOptionCard(
-                    icon: Icons.local_grocery_store,
-                    label: 'FMCG SD',
-                    onTap: () async {
-                      if (_storeData != null) {
-                        final storeData = await _storeData!;
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                FMCGSDStores(storeList: storeData),
-                          ),
-                        );
-                      } else {
-                        // Handle null case if needed
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content:
-                                  Text('Store data is not available yet.')),
-                        );
-                      }
-                    },
-                  ),
-                  const SizedBox(width: 20),
-                  _buildOptionCard(
-                    icon: Icons.smoking_rooms,
-                    label: 'Tobacco',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => StoreListScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHomeContent(List<Map<String, dynamic>> storeList) {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          const SizedBox(height: 126),
+          Image.asset(
+            AssetsPath.appLogoSvg,
+            width: 275,
+            fit: BoxFit.fitWidth,
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Data Collection Application',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.amber,
+              fontFamily: 'Lato',
+              fontSize: 19.5,
+              letterSpacing: 0.6,
+              fontWeight: FontWeight.bold,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 40),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildOptionCard(
+                icon: Icons.local_grocery_store,
+                label: 'FMCG SD',
+                onTap: () {
+                  if (_dbPath != null) {
+                    Navigator.push(
+                      context,
+                      // MaterialPageRoute(
+                      //   builder: (context) => FmcgSdStoreDetails(
+                      //     storeData: storeList[1],
+                      //     dbPath: _dbPath!,
+                      //   ),
+                      // ),
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            FMCGSDStores(storeList: storeList),
+                      ),
+                    );
+                  } else {
+                    _showSnackBar('Database path is not set.');
+                  }
+                },
+              ),
+              const SizedBox(width: 20),
+              _buildOptionCard(
+                icon: Icons.smoking_rooms,
+                label: 'Tobacco',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => StoreClose(),
+                    ),
+                  );
+                },
               ),
             ],
           ),
-        ),
+        ],
       ),
     );
   }
@@ -229,5 +328,12 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _loadAuditorId() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _auditorId = prefs.getString('auditorId') ?? 'No ID Found';
+    });
   }
 }

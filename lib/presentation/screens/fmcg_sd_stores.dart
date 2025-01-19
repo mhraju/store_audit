@@ -62,6 +62,27 @@ class _FMCGSDStoresState extends State<FMCGSDStores>
       ),
       body: Column(
         children: [
+          // Search Bar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Search for Store',
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: Colors.grey[200],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                });
+              },
+            ),
+          ),
           // Tabs with badges
           PreferredSize(
             preferredSize: const Size.fromHeight(70), // Adjust TabBar height

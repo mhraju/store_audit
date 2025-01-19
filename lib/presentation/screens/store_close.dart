@@ -4,12 +4,16 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img; // Import the image package
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../utility/app_colors.dart';
+import '../../utility/show_progress.dart';
 
 class StoreClose extends StatefulWidget {
   //final List<Map<String, dynamic>> selectedItems;
-  final Map<String, dynamic> item;
-
-  const StoreClose({super.key, required this.item});
+  // final Map<String, dynamic> item;
+  // const StoreClose({super.key, required this.item});
+  const StoreClose({super.key});
 
   @override
   State<StoreClose> createState() => _StoreCloseState();
@@ -17,7 +21,7 @@ class StoreClose extends StatefulWidget {
 
 class _StoreCloseState extends State<StoreClose> {
   final _remarksController = TextEditingController();
-
+  final List<File> _imageFiles = [];
   File? _image;
   final ImagePicker _picker = ImagePicker();
   final String uploadUrl =
@@ -30,7 +34,7 @@ class _StoreCloseState extends State<StoreClose> {
     final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
     if (photo != null) {
       final Directory appDir = await getApplicationDocumentsDirectory();
-      final String customPath = '${appDir.path}/CustomPhotos';
+      final String customPath = appDir.path;
       final Directory customDir = Directory(customPath);
       if (!customDir.existsSync()) {
         customDir.createSync(recursive: true);
@@ -41,17 +45,77 @@ class _StoreCloseState extends State<StoreClose> {
           img.decodeImage(await File(photo.path).readAsBytes());
       if (originalImage != null) {
         final img.Image resizedImage =
-            img.copyResize(originalImage, width: 600, height: 600);
+            img.copyResize(originalImage, width: 500, height: 500);
+        final String timestamp =
+            DateTime.now().millisecondsSinceEpoch.toString();
+        final String newFileName = 'selfie_852456_$timestamp.jpg';
+
+        final String newPath = '$customPath/$newFileName';
         final File resizedFile = File('${photo.path}_resized.jpg')
           ..writeAsBytesSync(img.encodeJpg(resizedImage));
-        final String newPath =
-            '$customPath/${DateTime.now().millisecondsSinceEpoch}.jpg';
         final File newImage = await resizedFile.copy(newPath);
+
+        final prefs = await SharedPreferences.getInstance();
+        List<String> savedPaths = prefs.getStringList('imagePaths') ?? [];
+        savedPaths.add(newPath);
+        await prefs.setStringList('imagePaths', savedPaths);
 
         setState(() {
           _image = newImage;
         });
+        print('Image saved at: $newPath');
       }
+    }
+  }
+
+  Future<void> _takePhoto() async {
+    try {
+      // Show the progress dialog
+      ShowProgress.showProgressDialog(context);
+
+      final pickedFile = await ImagePicker().pickImage(
+        source: ImageSource.camera,
+      );
+
+      if (pickedFile != null) {
+        // Get the application's document directory
+        final directory = await getApplicationDocumentsDirectory();
+        final customPath = directory.path;
+
+        // Decode and resize the image
+        final img.Image? originalImage =
+            img.decodeImage(await File(pickedFile.path).readAsBytes());
+        if (originalImage != null) {
+          final img.Image resizedImage =
+              img.copyResize(originalImage, width: 500, height: 500);
+          final String timestamp =
+              DateTime.now().millisecondsSinceEpoch.toString();
+          final String newFileName = 'product_852456_$timestamp.jpg';
+          final String newPath = '$customPath/$newFileName';
+
+          // Save resized image
+          final File resizedFile = File('${pickedFile.path}_resized.jpg')
+            ..writeAsBytesSync(img.encodeJpg(resizedImage));
+          final File newImage = await resizedFile.copy(newPath);
+
+          // Save the image path in SharedPreferences
+          // final prefs = await SharedPreferences.getInstance();
+          // List<String> savedPaths = prefs.getStringList('imagePaths') ?? [];
+          // savedPaths.add(newPath);
+          // await prefs.setStringList('imagePaths', savedPaths);
+
+          // Add the resized image to the list
+          setState(() {
+            _imageFiles.add(newImage);
+          });
+        }
+      }
+    } catch (e) {
+      print('Error taking photo: $e');
+      _showSnackbar('Failed to take a photo.');
+    } finally {
+      // Close the progress dialog
+      Navigator.of(context).pop();
     }
   }
 
@@ -120,8 +184,8 @@ class _StoreCloseState extends State<StoreClose> {
     // Logic to save data in the database
     print('Remarks: ${_remarksController.text}');
     print('Image Path: ${_image!.path}');
-    print('Previous Page Data: ${widget.item}');
-    _uploadImage();
+    //print('Previous Page Data: ${widget.item}');
+    //_uploadImage();
     // _showSnackbar('SKU update submitted successfully!');
     //Navigator.pop(context); // Navigate back after submission
   }
@@ -136,7 +200,9 @@ class _StoreCloseState extends State<StoreClose> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SKU Update'),
+        backgroundColor: AppColors.appBarColor,
+        elevation: 0,
+        title: const Text('Test Image Upload'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
@@ -182,10 +248,64 @@ class _StoreCloseState extends State<StoreClose> {
                   ),
                 ),
                 const SizedBox(height: 16.0),
+                const Text('Add Photos:'),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8, // Horizontal gap between images
+                  runSpacing: 8, // Vertical gap between rows of images
+                  children: _imageFiles
+                      .map((file) => Stack(
+                            children: [
+                              Image.file(file, width: 100, height: 100),
+                              Positioned(
+                                right: 0,
+                                top: 0,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _imageFiles.remove(file);
+                                    });
+                                  },
+                                  child: const Icon(
+                                    Icons.remove_circle,
+                                    color: Colors.red,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ))
+                      .toList(),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _takePhoto,
+                  icon: const Icon(Icons.camera_alt),
+                  label: const Text('Take Photo'),
+                ),
+                const SizedBox(height: 16.0),
                 ElevatedButton(
                   onPressed: _saveSkuUpdate,
-                  child: const Text('Submit'),
-                ),
+                  style: ElevatedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor:
+                        const Color(0xFF314CA3), // White text color
+                    shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(50), // Rounded corners
+                    ),
+                    padding: EdgeInsets.zero, // Remove extra padding
+                    minimumSize: const Size(double.infinity,
+                        50), // Ensure button takes full width with specific height
+                  ),
+                  child: const Text(
+                    'Submit',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 16,
+                      fontWeight: FontWeight.normal,
+                      height: 1.5, // Adjust line height if needed
+                    ),
+                  ),
+                )
               ],
             ),
           ),

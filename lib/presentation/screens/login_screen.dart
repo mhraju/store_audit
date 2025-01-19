@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http; // Add http package
 import 'package:store_audit/presentation/screens/home_screen.dart';
-
 import '../../utility/assets_path.dart';
+import '../../utility/show_progress.dart';
 
 class LoginWidget extends StatefulWidget {
   @override
@@ -19,15 +21,41 @@ class _LoginWidgetState extends State<LoginWidget> {
     await prefs.setString('auditorId', auditorId);
   }
 
+  // Function to make an API call
+  Future<String?> _fetchDatabasePath(String auditorId) async {
+    try {
+      final url = Uri.parse(
+          'https://mcdphp8.bol-online.com/luminaries-app/api/v1/syncdb?code=$auditorId');
+      final response = await http.post(url);
+
+      final responseData = json.decode(response.body);
+      if (responseData['status'] == 1) {
+        // Return the database path from the response
+        return responseData['data']['path'];
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(responseData['message'])),
+        );
+      }
+      // if (response.statusCode == 200) {
+
+      // } else {
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     const SnackBar(content: Text('Failed to connect to the server')),
+      //   );
+      // }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        //SnackBar(content: Text('Error: $e')),
+        SnackBar(content: Text('Please, Connect the Internet')),
+      );
+    }
+    return null; // Return null if an error occurs
+  }
+
   // Navigate to the next screen
   void _navigateToNextScreen(BuildContext context) {
     Get.off(() => const HomeScreen());
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(
-    //     builder: (context) => const HomeScreen(),
-    //   ),
-    // );
   }
 
   @override
@@ -38,18 +66,6 @@ class _LoginWidgetState extends State<LoginWidget> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // App Logo
-            // Container(
-            //   width: 95,
-            //   height: 95,
-            //   decoration: BoxDecoration(
-            //     borderRadius: BorderRadius.circular(15),
-            //     image: const DecorationImage(
-            //       image: AssetImage('assets/images/splash_logo.png'),
-            //       fit: BoxFit.cover,
-            //     ),
-            //   ),
-            // ),
             const SizedBox(height: 15),
 
             // App Title
@@ -65,7 +81,6 @@ class _LoginWidgetState extends State<LoginWidget> {
               'Data Collection Application',
               textAlign: TextAlign.center,
               style: TextStyle(
-                //color: Color(0xFF1E232C),
                 color: Colors.amber,
                 fontFamily: 'Lato',
                 fontSize: 19.5,
@@ -88,7 +103,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                 controller: _auditorIdController,
                 decoration: const InputDecoration(
                   border: InputBorder.none,
-                  hintText: 'Give auditor ID:',
+                  hintText: 'Give Auditor ID:',
                   hintStyle: TextStyle(
                     color: Color(0xFF888EA2),
                     fontFamily: 'Inter',
@@ -103,10 +118,22 @@ class _LoginWidgetState extends State<LoginWidget> {
             // Login Button
             GestureDetector(
               onTap: () async {
+                ShowProgress.showProgressDialog(context);
                 final auditorId = _auditorIdController.text.trim();
                 if (auditorId.isNotEmpty) {
                   await _saveAuditorId(auditorId);
-                  _navigateToNextScreen(context);
+
+                  // Make API call and fetch database path
+                  final dbPath = await _fetchDatabasePath(auditorId);
+                  if (dbPath != null) {
+                    print('Database Path: $dbPath'); // Use this for debugging
+
+                    // Save the database path if needed
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setString('dbUrl', dbPath);
+
+                    _navigateToNextScreen(context);
+                  }
                 } else {
                   // Show a message if the input is empty
                   ScaffoldMessenger.of(context).showSnackBar(
