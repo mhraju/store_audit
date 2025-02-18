@@ -5,7 +5,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img; // Import the image package
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:store_audit/presentation/screens/test.dart';
 import 'package:store_audit/utility/show_alert.dart';
 
 import '../../db/database_manager.dart';
@@ -17,11 +16,14 @@ class FmcgSdStoreClose extends StatefulWidget {
   final List<Map<String, dynamic>> storeList;
   final Map<String, dynamic> storeData;
   final String option;
+  final String auditorId;
+
   const FmcgSdStoreClose(
       {super.key,
       required this.storeList,
       required this.storeData,
-      required this.option});
+      required this.option,
+      required this.auditorId});
 
   @override
   State<FmcgSdStoreClose> createState() => _FmcgSdStoreCloseState();
@@ -30,7 +32,7 @@ class FmcgSdStoreClose extends StatefulWidget {
 class _FmcgSdStoreCloseState extends State<FmcgSdStoreClose> {
   final _remarksController = TextEditingController();
   final List<File> _imageFiles = [];
-  File? _image;
+  File? _selfieImage;
   final ImagePicker _picker = ImagePicker(); // Replace with your ImgBB API key
   bool _isUploading = false;
   final DatabaseManager dbManager = DatabaseManager();
@@ -40,6 +42,90 @@ class _FmcgSdStoreCloseState extends State<FmcgSdStoreClose> {
   void initState() {
     super.initState();
     _storeData = widget.storeData;
+  }
+
+  String sortStatus() {
+    if (widget.option == 'Initial Audit (IA)') {
+      return 'IA';
+    } else if (widget.option == 'Re Audit (RA)') {
+      return 'RA';
+    } else if (widget.option == 'Temporary Closed (TC)') {
+      return 'TC';
+    } else if (widget.option == 'Permanent Closed (PC)') {
+      return 'PC';
+    } else {
+      return 'CANS';
+    }
+  }
+
+  /// **Load saved images from SharedPreferences**
+  Future<void> _loadSavedImages() async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String> savedPaths = prefs.getStringList('imagePaths') ?? [];
+    setState(() {
+      _imageFiles.addAll(savedPaths.map((path) => File(path)));
+    });
+  }
+
+  /// **Save images path in SharedPreferences when submitting**
+  Future<void> _saveSkuUpdate() async {
+    if (_selfieImage == null) {
+      ShowAlert.showSnackBar(context, 'Please add a selfie before submitting.');
+      return;
+    }
+    if (_remarksController.text.isEmpty) {
+      ShowAlert.showSnackBar(
+          context, 'Please enter remarks before submitting.');
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    //List<String> savedPaths = prefs.getStringList('imagePaths') ?? [];
+    List<String> imagePaths = [];
+
+    if (_imageFiles.isNotEmpty) {
+      imagePaths = _imageFiles.map((file) => file.path).toList();
+      //savedPaths = _imageFiles.map((file) => file.path).toList();
+    }
+
+    if (_selfieImage != null) {
+      imagePaths.add(_selfieImage!.path);
+      //savedPaths.add(_selfieImage!.path);
+    }
+
+    // await prefs.setStringList(
+    //     'imagePaths', imagePaths); // Save final image list
+    // print("✅ Final saved images: $imagePaths");
+
+    final String? dbPath = prefs.getString('dbPath');
+    if (dbPath == null) {
+      ShowAlert.showSnackBar(context, 'Database path not found.');
+      return;
+    }
+
+    await dbManager.closeStore(
+      dbPath,
+      _storeData['code'],
+      1,
+      1,
+      widget.option,
+      sortStatus(),
+      _selfieImage!.path,
+      imagePaths.join(','), // ✅ Use comma-separated string
+    );
+
+    ShowAlert.showSnackBar(context, 'Store update submitted successfully!');
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FMCGSDStores(
+          dbPath: dbPath,
+          auditorId: widget.auditorId,
+        ),
+      ),
+      (route) => route.isFirst, // ✅ Keeps only the first route (HomeScreen)
+    );
   }
 
   Future<void> _takeSelfie() async {
@@ -60,7 +146,7 @@ class _FmcgSdStoreCloseState extends State<FmcgSdStoreClose> {
             img.copyResize(originalImage, width: 500, height: 500);
         final String timestamp =
             DateTime.now().millisecondsSinceEpoch.toString();
-        final String newFileName = 'selfie_852456_$timestamp.jpg';
+        final String newFileName = 'selfie_${widget.auditorId}_$timestamp.jpg';
 
         final String newPath = '$customPath/$newFileName';
         final File resizedFile = File('${photo.path}_resized.jpg')
@@ -69,32 +155,31 @@ class _FmcgSdStoreCloseState extends State<FmcgSdStoreClose> {
 
         final prefs = await SharedPreferences.getInstance();
         List<String> savedPaths = prefs.getStringList('imagePaths') ?? [];
+        print('prev images $savedPaths');
         savedPaths.add(newPath);
         await prefs.setStringList('imagePaths', savedPaths);
 
+        print('new images $savedPaths');
+
         setState(() {
-          _image = newImage;
+          _selfieImage = newImage;
         });
         print('Image saved at: $newPath');
       }
     }
   }
 
+  /// **Capture image, resize it & save the path**
   Future<void> _takePhoto() async {
     try {
-      // Show the progress dialog
       ShowProgress.showProgressDialog(context);
 
-      final pickedFile = await ImagePicker().pickImage(
-        source: ImageSource.camera,
-      );
-
+      final pickedFile = await _picker.pickImage(source: ImageSource.camera);
       if (pickedFile != null) {
-        // Get the application's document directory
         final directory = await getApplicationDocumentsDirectory();
         final customPath = directory.path;
 
-        // Decode and resize the image
+        // Resize image
         final img.Image? originalImage =
             img.decodeImage(await File(pickedFile.path).readAsBytes());
         if (originalImage != null) {
@@ -102,87 +187,44 @@ class _FmcgSdStoreCloseState extends State<FmcgSdStoreClose> {
               img.copyResize(originalImage, width: 500, height: 500);
           final String timestamp =
               DateTime.now().millisecondsSinceEpoch.toString();
-          final String newFileName = 'product_852456_$timestamp.jpg';
-          final String newPath = '$customPath/$newFileName';
+          final String newPath = '$customPath/product_$timestamp.jpg';
 
           // Save resized image
           final File resizedFile = File('${pickedFile.path}_resized.jpg')
             ..writeAsBytesSync(img.encodeJpg(resizedImage));
           final File newImage = await resizedFile.copy(newPath);
 
-          // Save the image path in SharedPreferences
+          // Save image path in SharedPreferences
           final prefs = await SharedPreferences.getInstance();
           List<String> savedPaths = prefs.getStringList('imagePaths') ?? [];
           savedPaths.add(newPath);
           await prefs.setStringList('imagePaths', savedPaths);
 
-          // Add the resized image to the list
           setState(() {
             _imageFiles.add(newImage);
           });
         }
       }
     } catch (e) {
-      print('Error taking photo: $e');
-      _showSnackbar('Failed to take a photo.');
+      print('❌ Error taking photo: $e');
+      ShowAlert.showSnackBar(context, 'Failed to take a photo.');
     } finally {
-      // Close the progress dialog
       Navigator.of(context).pop();
     }
   }
 
-  String sortStatus() {
-    if (widget.option == 'Initial Audit (IA)') {
-      return 'IA';
-    } else if (widget.option == 'Re Audit (RA)') {
-      return 'RA';
-    } else if (widget.option == 'Temporary Closed (TC)') {
-      return 'TC';
-    } else if (widget.option == 'Permanent Closed (PC)') {
-      return 'PC';
-    } else {
-      return 'CANS';
-    }
-  }
+  /// **Remove Image & Update SharedPreferences**
+  void _removeImage(File file) async {
+    setState(() {
+      _imageFiles.remove(file);
+    });
 
-  Future<void> _saveSkuUpdate() async {
     final prefs = await SharedPreferences.getInstance();
-    final String? auditorId = prefs.getString('auditorId');
-    final String? dbPath = prefs.getString('dbPath');
     List<String> savedPaths = prefs.getStringList('imagePaths') ?? [];
+    savedPaths.remove(file.path);
+    await prefs.setStringList('imagePaths', savedPaths);
 
-    await dbManager.closeStore(dbPath!, _storeData['code'], 1, 1, widget.option,
-        sortStatus(), 'hey', 'hi');
-
-    ShowAlert.showSnackBar(context, 'Store update submitted successfully!');
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-          builder: (context) => FMCGSDStores(
-              dbPath: dbPath ?? "", // Provide a default value if null
-              auditorId: auditorId ?? "")),
-    );
-
-    // if (_image == null || _remarksController.text.isEmpty) {
-    //   _showSnackbar('Please add a selfie and enter remarks before submitting.');
-    //   return;
-    // }
-
-    // // Logic to save data in the database
-    // print('Remarks: ${_remarksController.text}');
-    // print('Image Path: ${_image!.path}');
-
-    //print('Previous Page Data: ${widget.item}');
-    //_uploadImage();
-    // _showSnackbar('SKU update submitted successfully!');
-    //Navigator.pop(context); // Navigate back after submission
-  }
-
-  void _showSnackbar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
-    );
+    print("🗑️ Removed Image: ${file.path}");
   }
 
   @override
@@ -191,7 +233,7 @@ class _FmcgSdStoreCloseState extends State<FmcgSdStoreClose> {
       appBar: AppBar(
         backgroundColor: AppColors.appBarColor,
         elevation: 0,
-        title: const Text('Test Image Upload'),
+        title: const Text('Store Close'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
@@ -221,7 +263,7 @@ class _FmcgSdStoreCloseState extends State<FmcgSdStoreClose> {
                       border: Border.all(color: Colors.grey),
                       borderRadius: BorderRadius.circular(8.0),
                     ),
-                    child: _image == null
+                    child: _selfieImage == null
                         ? const Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -233,57 +275,62 @@ class _FmcgSdStoreCloseState extends State<FmcgSdStoreClose> {
                               ],
                             ),
                           )
-                        : Image.file(_image!, fit: BoxFit.cover),
+                        : Image.file(_selfieImage!, fit: BoxFit.cover),
                   ),
                 ),
                 const SizedBox(height: 16.0),
+
                 const Text('Add Photos:'),
                 const SizedBox(height: 8),
+
+                /// **Image Display with Remove Option**
                 Wrap(
-                  spacing: 8, // Horizontal gap between images
-                  runSpacing: 8, // Vertical gap between rows of images
+                  spacing: 8,
+                  runSpacing: 8,
                   children: _imageFiles
-                      .map((file) => Stack(
-                            children: [
-                              Image.file(file, width: 100, height: 100),
-                              Positioned(
-                                right: 0,
-                                top: 0,
-                                child: GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      _imageFiles.remove(file);
-                                    });
-                                  },
-                                  child: const Icon(
-                                    Icons.remove_circle,
-                                    color: Colors.red,
-                                  ),
+                      .map(
+                        (file) => Stack(
+                          children: [
+                            Image.file(file, width: 100, height: 100),
+                            Positioned(
+                              right: 0,
+                              top: 0,
+                              child: GestureDetector(
+                                onTap: () => _removeImage(file),
+                                // Updated function
+                                child: const Icon(
+                                  Icons.remove_circle,
+                                  color: Colors.red,
                                 ),
                               ),
-                            ],
-                          ))
+                            ),
+                          ],
+                        ),
+                      )
                       .toList(),
                 ),
+
+                const SizedBox(height: 10),
+
                 ElevatedButton.icon(
                   onPressed: _takePhoto,
                   icon: const Icon(Icons.camera_alt),
                   label: const Text('Take Photo'),
                 ),
+
                 const SizedBox(height: 16.0),
+
+                /// **Submit & Save Images**
                 ElevatedButton(
                   onPressed: _saveSkuUpdate,
                   style: ElevatedButton.styleFrom(
                     foregroundColor: Colors.white,
-                    backgroundColor:
-                        const Color(0xFF314CA3), // White text color
+                    backgroundColor: const Color(0xFF314CA3),
                     shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(50), // Rounded corners
+                      borderRadius: BorderRadius.circular(50),
                     ),
-                    padding: EdgeInsets.zero, // Remove extra padding
-                    minimumSize: const Size(double.infinity,
-                        50), // Ensure button takes full width with specific height
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(double.infinity, 50),
                   ),
                   child: const Text(
                     'Submit',
@@ -291,13 +338,15 @@ class _FmcgSdStoreCloseState extends State<FmcgSdStoreClose> {
                       fontFamily: 'Inter',
                       fontSize: 16,
                       fontWeight: FontWeight.normal,
-                      height: 1.5, // Adjust line height if needed
+                      height: 1.5,
                     ),
                   ),
-                )
+                ),
               ],
             ),
           ),
+
+          /// **Show Progress Indicator if Uploading**
           if (_isUploading)
             Center(
               child: Container(

@@ -1,5 +1,6 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:store_audit/db/database_manager.dart';
 import 'package:store_audit/service/file_upload_download.dart';
 
 import '../utility/show_alert.dart';
@@ -9,13 +10,17 @@ class ConnectionCheck {
     var connectivityResults = await Connectivity().checkConnectivity();
 
     String status;
-    final fileUploadDownload = FileUploadDownload(); // Replace with your class
+    final fileUploadDownload = FileUploadDownload();
+    final dbManager = DatabaseManager(); // Replace with your class
 
     if (connectivityResults.contains(ConnectivityResult.mobile)) {
       status = 'Connected to a mobile network';
-      await fileUploadDownload.uploadFile(context); // Call your upload logic
+      //dbManager.downloadAndSaveUserDatabase();
+      await fileUploadDownload.uploadFile(context);
+      await fileUploadDownload.uploadImages(context);
     } else if (connectivityResults.contains(ConnectivityResult.wifi)) {
       status = 'Connected to a Wi-Fi network';
+      await fileUploadDownload.uploadFile(context);
       await fileUploadDownload.uploadImages(context); // Call your upload logic
     } else if (connectivityResults.contains(ConnectivityResult.none)) {
       status = 'No internet connection';

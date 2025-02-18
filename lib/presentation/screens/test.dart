@@ -1,153 +1,191 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 
-class FileUploadExample extends StatefulWidget {
+import '../../utility/app_colors.dart';
+
+class FmcgSkuList extends StatefulWidget {
+  const FmcgSkuList({super.key});
+
   @override
-  _FileUploadExampleState createState() => _FileUploadExampleState();
+  State<FmcgSkuList> createState() => _FmcgSkuListState();
 }
 
-class _FileUploadExampleState extends State<FileUploadExample> {
-  File? _selectedFile;
-  bool _isUploading = false;
+class _FmcgSkuListState extends State<FmcgSkuList> {
+  List<Map<String, dynamic>> skuData = [];
+  List<Map<String, dynamic>> filteredSkuData = [];
+  bool isLoading = true;
+  TextEditingController searchController = TextEditingController();
 
-  // Function to upload the file to the server
-  Future<void> _uploadFile() async {
-    final prefs = await SharedPreferences.getInstance();
-    final selectedFilePath = prefs.getString('dbPath');
-
-    if (selectedFilePath == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No file selected.')),
-      );
-      return;
-    }
-
-    setState(() {
-      _isUploading = true;
-    });
-
-    const String apiUrl =
-        'https://mcdphp8.bol-online.com/luminaries-app/api/v1/upload-db'; // Replace with your API URL
-
-    try {
-      var request = http.MultipartRequest('POST', Uri.parse(apiUrl));
-
-      // Attach the file
-      request.files.add(
-        await http.MultipartFile.fromPath('file', selectedFilePath),
-      );
-
-      // Optionally, add other fields
-      request.fields['code'] = '852456'; // Example field
-
-      // Send the request
-      var response = await request.send();
-
-      if (response.statusCode == 200) {
-        print('File uploaded successfully');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('File uploaded successfully')),
-        );
-      } else {
-        print('Failed to upload file. Status code: ${response.statusCode}');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Upload failed. Status code: ${response.statusCode}'),
-          ),
-        );
-      }
-    } catch (e) {
-      print('Error uploading file: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error uploading file: $e')),
-      );
-    } finally {
-      setState(() {
-        _isUploading = false;
-      });
-    }
+  @override
+  void initState() {
+    super.initState();
+    _fetchSkuData(); // Load data from the database
+    searchController.addListener(_filterSkuData);
   }
 
-  Future<void> _uploadImages() async {
-    final prefs = await SharedPreferences.getInstance();
-    List<String> savedPaths = prefs.getStringList('imagePaths') ?? [];
+  @override
+  void dispose() {
+    searchController.removeListener(_filterSkuData);
+    searchController.dispose();
+    super.dispose();
+  }
 
-    if (savedPaths.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No images to upload.')),
-      );
-      return;
-    }
+  Future<void> _fetchSkuData() async {
+    // Simulate database fetching with a delay
+    await Future.delayed(const Duration(seconds: 2));
+
+    // Mock data (replace this with your database query logic)
+    final fetchedData = [
+      {
+        'name': 'Dabur Amla 3 Benefits Pbt 275M- Dabur-India',
+        'status': 'available'
+      },
+      {
+        'name': 'Sunsilk 160Ml Pbt Co-Creations Hair Fall Solution',
+        'status': 'low_stock'
+      },
+      {'name': 'Cocacola 250 ml Pbt', 'status': 'out_of_stock'},
+    ];
 
     setState(() {
-      _isUploading = true;
+      skuData = fetchedData;
+      filteredSkuData = fetchedData; // Initially display all items
+      isLoading = false;
     });
+  }
 
-    const String apiUrl =
-        'https://mcdphp8.bol-online.com/luminaries-app/api/v1/upload-user-files';
+  void _filterSkuData() {
+    final query = searchController.text.toLowerCase();
+    setState(() {
+      filteredSkuData = skuData.where((item) {
+        final name = item['name'].toLowerCase();
+        return name.contains(query);
+      }).toList();
+    });
+  }
 
-    try {
-      // Create the request and add the fields only once
-      var request = http.MultipartRequest('POST', Uri.parse(apiUrl))
-        ..fields['code'] = '852456';
+  void _showBottomSheet(Map<String, dynamic> skuItem) {
+    TextEditingController purchaseController =
+        TextEditingController(text: '200');
+    TextEditingController closingStockController =
+        TextEditingController(text: '40');
+    int saleValue = int.parse(purchaseController.text) +
+        int.parse(closingStockController.text);
 
-      for (String path in List.from(savedPaths)) {
-        File imageFile = File(path);
+    // Listen for changes in inputs
+    void _updateSaleValue() {
+      int purchase = int.tryParse(purchaseController.text) ?? 0;
+      int closingStock = int.tryParse(closingStockController.text) ?? 0;
+      saleValue = purchase + closingStock;
+    }
 
-        if (await imageFile.exists()) {
-          // Add files to the request
-          request.files.add(await http.MultipartFile.fromPath('files[]', path));
-        } else {
-          print('File not found: $path');
-          savedPaths.remove(path); // Remove invalid path
-        }
-      }
-
-      if (request.files.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No valid images to upload.')),
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            top: 16,
+          ),
+          child: SafeArea(
+            // Wrap the content with SafeArea
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      skuItem['name'],
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildEditableField('Opening Stock (OS)', '40'),
+                    _buildEditableField('Purchase', '200',
+                        controller: purchaseController,
+                        onChanged: _updateSaleValue),
+                    _buildEditableField('Closing Stock (CS)', '40',
+                        controller: closingStockController,
+                        onChanged: _updateSaleValue),
+                    _buildNonEditableField('Sale', saleValue.toString()),
+                    _buildEditableField('Wholesale (WS)', '200'),
+                    _buildEditableField('MRP', '200'),
+                    _buildEditableField('Avg Sale Last Month', '200'),
+                    _buildEditableField('Avg Sale Last to Last Month', '200'),
+                    const SizedBox(height: 16),
+                    Center(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          // Handle update logic here
+                          Navigator.pop(context); // Close the bottom sheet
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              Colors.blue, // Set the background color to blue
+                          foregroundColor:
+                              Colors.white, // Set the text color to white
+                        ),
+                        child: const Text('Update'),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            ),
+          ),
         );
-        setState(() {
-          _isUploading = false;
-        });
-        return;
-      }
+      },
+    );
+  }
 
-      // Send the request
-      var response = await request.send();
+// Function to build an editable field
+  Widget _buildEditableField(String label, String value,
+      {TextEditingController? controller, Function()? onChanged}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: TextField(
+        controller: controller ?? TextEditingController(text: value),
+        onChanged: (text) => onChanged?.call(),
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+        ),
+        keyboardType: TextInputType.number,
+      ),
+    );
+  }
 
-      if (response.statusCode == 200) {
-        print('All images uploaded successfully.');
+// Function to build a non-editable field
+  Widget _buildNonEditableField(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: TextField(
+        controller: TextEditingController(text: value),
+        readOnly: true, // Make the field non-editable
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+          filled: true,
+          fillColor: Colors
+              .grey.shade200, // Optional: Add a background color for clarity
+        ),
+      ),
+    );
+  }
 
-        // Remove all uploaded files from the device
-        for (String path in List.from(savedPaths)) {
-          File(path).deleteSync();
-        }
-
-        // Clear paths from SharedPreferences
-        await prefs.remove('imagePaths');
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Image upload completed successfully.')),
-        );
-      } else {
-        print('Failed to upload images. Status: ${response.statusCode}');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Upload failed. Status: ${response.statusCode}')),
-        );
-      }
-    } catch (e) {
-      print('Error uploading images: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error uploading images: $e')),
-      );
-    } finally {
-      setState(() {
-        _isUploading = false;
-      });
+  Color _getColorByStatus(String status) {
+    switch (status) {
+      case 'available':
+        return Colors.green.shade300;
+      case 'low_stock':
+        return Colors.yellow.shade200;
+      case 'out_of_stock':
+        return Colors.grey.shade300;
+      default:
+        return Colors.grey.shade100;
     }
   }
 
@@ -155,41 +193,157 @@ class _FileUploadExampleState extends State<FileUploadExample> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('File Upload'),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (_selectedFile != null)
-              Column(
-                children: [
-                  Image.file(
-                    _selectedFile!,
-                    height: 200,
-                    fit: BoxFit.cover,
-                  ),
-                  const SizedBox(height: 16),
-                ],
-              ),
-            if (_isUploading)
-              const CircularProgressIndicator()
-            else
-              Column(
-                children: [
-                  ElevatedButton(
-                    onPressed: _uploadImages,
-                    child: const Text('Image File'),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _uploadFile,
-                    child: const Text('Upload File'),
-                  ),
-                ],
-              ),
-          ],
+        backgroundColor: AppColors.appBarColor,
+        elevation: 0,
+        title: const Text(
+          'SKU Details',
+          style: TextStyle(color: Colors.black),
         ),
+        iconTheme: const IconThemeData(color: Colors.black),
+      ),
+      body: Column(
+        children: [
+          const SizedBox(height: 16),
+          // Search Bar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Container(
+              width:
+                  double.infinity, // Ensures the TextField takes the full width
+              child: TextField(
+                controller: searchController,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    color: Colors.grey,
+                    size:
+                        24, // Increase the size of the search icon (e.g., 24, 28, etc.)
+                  ),
+                  hintText: 'category, brand, sku type, sku size',
+                  hintStyle: const TextStyle(fontSize: 14, color: Colors.grey),
+                  isDense: true, // Reduces vertical padding for better fit
+                  filled: true,
+                  fillColor: const Color(0xFFEAEFF6),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        const BorderSide(color: Colors.blueGrey, width: 1.0),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        const BorderSide(color: Colors.blueGrey, width: 2.0),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+          // SKU List
+          Expanded(
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : filteredSkuData.isEmpty
+                    ? const Center(child: Text('No data found.'))
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        itemCount: filteredSkuData.length,
+                        itemBuilder: (context, index) {
+                          final skuItem = filteredSkuData[index];
+                          return GestureDetector(
+                            onTap: () => _showBottomSheet(skuItem),
+                            child: _buildSkuItem(
+                              skuItem['name'],
+                              _getColorByStatus(skuItem['status']),
+                            ),
+                          );
+                        },
+                      ),
+          ),
+          // Bottom Navigation
+          SafeArea(
+            child: Container(
+              height: 60,
+              decoration: const BoxDecoration(
+                color: AppColors.bottomNavBarColor,
+                border: Border(
+                  top: BorderSide(
+                    color: AppColors.bottomNavBorderColor,
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const FmcgSkuList(),
+                          ),
+                        );
+                      },
+                      child: const Center(
+                        child: Text(
+                          'New Entry',
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Container(
+                    width: 1,
+                    height: 40,
+                    color: Colors.grey.shade200,
+                  ),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const FmcgSkuList(),
+                          ),
+                        );
+                      },
+                      child: const Center(
+                        child: Text(
+                          'Next',
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSkuItem(String title, Color backgroundColor) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        title,
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
       ),
     );
   }

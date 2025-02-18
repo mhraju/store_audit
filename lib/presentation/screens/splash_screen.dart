@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:store_audit/presentation/screens/fmcg_sku_list.dart';
+import 'package:store_audit/presentation/screens/fmcg_sd_sku_list.dart';
 import 'package:store_audit/presentation/screens/home_screen.dart';
 import 'package:store_audit/presentation/screens/home_screen_two.dart';
 import 'package:store_audit/presentation/screens/login_screen.dart';
 import 'package:store_audit/presentation/screens/store_close.dart';
 import 'package:store_audit/utility/assets_path.dart';
+
+import '../../db/database_manager.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -18,7 +20,10 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   String _auditorId = '';
-  String version = ''; // Initialize version as an empty string
+  String _dbPath = '';
+  String version = '';
+  final DatabaseManager dbManager = DatabaseManager();
+  List<Map<String, dynamic>>? fmcgStoreList;
 
   @override
   void initState() {
@@ -44,15 +49,17 @@ class _SplashScreenState extends State<SplashScreen> {
 
   // Move to the next screen after a delay
   Future<void> _moveToNextScreen() async {
-    await Future.delayed(const Duration(seconds: 5)); // Delay before moving
+    await Future.delayed(const Duration(seconds: 7)); // Delay before moving
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _auditorId = prefs.getString('auditorId') ?? 'No ID Found';
+      _dbPath = prefs.getString('dbPath') ?? 'No Path Found';
     });
     if (_auditorId == 'No ID Found' || _auditorId.isEmpty) {
       Get.to(() => LoginWidget());
     } else {
-      Get.to(() => const HomeScreen());
+      fmcgStoreList = await dbManager.loadFMcgSdStores(_dbPath, _auditorId);
+      Get.off(() => HomeScreen(fmcgStoreList: fmcgStoreList ?? []));
     }
   }
 

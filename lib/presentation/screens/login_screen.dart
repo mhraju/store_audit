@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http; // Add http package
 import 'package:store_audit/presentation/screens/home_screen.dart';
+import '../../db/database_manager.dart';
 import '../../utility/assets_path.dart';
 import '../../utility/show_progress.dart';
 
@@ -14,6 +15,11 @@ class LoginWidget extends StatefulWidget {
 
 class _LoginWidgetState extends State<LoginWidget> {
   final TextEditingController _auditorIdController = TextEditingController();
+  final DatabaseManager dbManager = DatabaseManager();
+  List<Map<String, dynamic>>? fmcgStoreList;
+  String _dbPath = '';
+  String _auditorId = '';
+  String dbUrl = '';
 
   // Save input data to local storage
   Future<void> _saveAuditorId(String auditorId) async {
@@ -22,7 +28,7 @@ class _LoginWidgetState extends State<LoginWidget> {
   }
 
   // Function to make an API call
-  Future<String?> _fetchDatabasePath(String auditorId) async {
+  Future<void> _fetchDatabasePath(String auditorId) async {
     try {
       final url = Uri.parse(
           'https://mcdphp8.bol-online.com/luminaries-app/api/v1/syncdb?code=$auditorId');
@@ -30,9 +36,12 @@ class _LoginWidgetState extends State<LoginWidget> {
 
       final responseData = json.decode(response.body);
       if (responseData['status'] == 1) {
+        print('DbPath okkk');
         // Return the database path from the response
-        return responseData['data']['path'];
+        dbUrl = responseData['data']['path'];
+        await _saveAuditorId(auditorId);
       } else {
+        ShowProgress.hideProgressDialog(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(responseData['message'])),
         );
@@ -45,17 +54,53 @@ class _LoginWidgetState extends State<LoginWidget> {
       //   );
       // }
     } catch (e) {
+      ShowProgress.hideProgressDialog(context);
       ScaffoldMessenger.of(context).showSnackBar(
         //SnackBar(content: Text('Error: $e')),
-        SnackBar(content: Text('Please, Connect the Internet')),
+        const SnackBar(content: Text('Please, Connect the Internet')),
       );
     }
     return null; // Return null if an error occurs
   }
 
+  Future<void> _checkLogin(String auditorId) async {
+    try {
+      final url = Uri.parse(
+          'https://mcdphp8.bol-online.com/luminaries-app/api/v1/login?code=$auditorId');
+      final response = await http.post(url);
+
+      final responseData = json.decode(response.body);
+      if (responseData['status'] == 1) {
+        print('Loginn okkk');
+        // Return the database path from the response
+        await _fetchDatabasePath(auditorId);
+      } else {
+        ShowProgress.hideProgressDialog(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(responseData['message'])),
+        );
+      }
+      // if (response.statusCode == 200) {
+
+      // } else {
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     const SnackBar(content: Text('Failed to connect to the server')),
+      //   );
+      // }
+    } catch (e) {
+      ShowProgress.hideProgressDialog(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        //SnackBar(content: Text('Error: $e')),
+        const SnackBar(content: Text('Please, Connect the Internet')),
+      );
+    } // Return null if an error occurs
+  }
+
   // Navigate to the next screen
-  void _navigateToNextScreen(BuildContext context) {
-    Get.off(() => const HomeScreen());
+  Future<void> _navigateToNextScreen(BuildContext context) async {
+    fmcgStoreList = await dbManager.loadFMcgSdStores(_dbPath, _auditorId);
+    ShowProgress.hideProgressDialog(context);
+    Get.off(() => HomeScreen(fmcgStoreList: fmcgStoreList ?? []));
   }
 
   @override
@@ -118,23 +163,24 @@ class _LoginWidgetState extends State<LoginWidget> {
             // Login Button
             GestureDetector(
               onTap: () async {
-                ShowProgress.showProgressDialog(context);
+                ShowProgress.showProgressDialogWithMsg(context);
                 final auditorId = _auditorIdController.text.trim();
                 if (auditorId.isNotEmpty) {
-                  await _saveAuditorId(auditorId);
-
                   // Make API call and fetch database path
-                  final dbPath = await _fetchDatabasePath(auditorId);
-                  if (dbPath != null) {
-                    print('Database Path: $dbPath'); // Use this for debugging
+                  await _checkLogin(auditorId);
 
-                    // Save the database path if needed
-                    final prefs = await SharedPreferences.getInstance();
-                    await prefs.setString('dbUrl', dbPath);
+                  print('Database Path: $dbUrl'); // Use this for debugging
 
-                    _navigateToNextScreen(context);
-                  }
+                  // Save the database path if needed
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setString('dbUrl', dbUrl);
+
+                  final dbPath = await dbManager.downloadAndSaveUserDatabase();
+                  _dbPath = dbPath;
+                  _auditorId = auditorId;
+                  _navigateToNextScreen(context);
                 } else {
+                  ShowProgress.hideProgressDialog(context);
                   // Show a message if the input is empty
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Please enter an Auditor ID')),

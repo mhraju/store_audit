@@ -6,19 +6,28 @@ import 'package:image/image.dart' as img; // Import the image package
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:store_audit/db/database_manager.dart';
-import 'package:store_audit/presentation/screens/fmcg_sku_list.dart';
-import 'package:store_audit/presentation/screens/store_close.dart';
+import 'package:store_audit/presentation/screens/fmcg_sd_sku_list.dart';
 
 import '../../utility/app_colors.dart';
+import '../../utility/show_alert.dart';
+import 'fmcg_sd_store_close.dart';
 
 class FmcgSdStoreDetails extends StatefulWidget {
+  final List<Map<String, dynamic>> storeList;
   final Map<String, dynamic> storeData;
-  String dbPath;
-  FmcgSdStoreDetails(
-      {super.key, required this.storeData, required this.dbPath});
+  final String dbPath;
+  final String auditorId;
+  final String option;
+  const FmcgSdStoreDetails(
+      {super.key,
+      required this.storeList,
+      required this.storeData,
+      required this.dbPath,
+      required this.auditorId,
+      required this.option});
 
   @override
-  _FmcgSdStoreDetailsState createState() => _FmcgSdStoreDetailsState();
+  State<FmcgSdStoreDetails> createState() => _FmcgSdStoreDetailsState();
 }
 
 class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
@@ -31,6 +40,8 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
   String locationStatus = "Waiting for location permission...";
   bool isInsideGeofence = false;
   bool isLoading = false;
+  late String _option;
+  String store_photo = "";
 
   late String _storeName;
   late String _contact;
@@ -51,6 +62,8 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
     _contact = widget.storeData['phone1'] ?? '';
     _detailAddress = widget.storeData['address'] ?? '';
     _landmark = widget.storeData['land_mark'] ?? '';
+    store_photo = widget.storeData['store_photo'] ?? '';
+    _option = widget.option;
 
     // Initialize the controllers
     nameController = TextEditingController(text: _storeName);
@@ -187,14 +200,13 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Image placeholder or captured image
+
                   Center(
                     child: isLoading
                         ? const SizedBox(
                             height: 130,
                             width: 300,
-                            child: Center(
-                              child: CircularProgressIndicator(),
-                            ),
+                            child: Center(child: CircularProgressIndicator()),
                           )
                         : _capturedImage != null
                             ? Image.file(
@@ -203,8 +215,18 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
                                 width: 300,
                                 fit: BoxFit.cover,
                               )
-                            : const Icon(Icons.image,
-                                size: 100, color: Colors.grey),
+                            : (store_photo.isNotEmpty &&
+                                    File(store_photo).existsSync())
+                                ? Image.file(
+                                    File(
+                                        store_photo), // ✅ Load image from file path
+                                    height: 130,
+                                    width: 300,
+                                    fit: BoxFit.cover,
+                                  )
+                                : const Icon(Icons.image,
+                                    size: 100,
+                                    color: Colors.grey), // Default icon
                   ),
 
                   const SizedBox(height: 16),
@@ -296,11 +318,18 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
           // Bottom navigation buttons
           if (otpVerified || (isInsideGeofence && !isLoading))
             Container(
-              height: 60,
+              height: 80,
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewPadding.bottom > 0
+                    ? MediaQuery.of(context).viewPadding.bottom
+                    : 16, // Ensure enough space if no padding exists
+              ),
               decoration: const BoxDecoration(
-                color: Color(0xFF60A7DA),
+                color: AppColors.bottomNavBarColor,
                 border: Border(
-                  top: BorderSide(color: Color(0xFF60A7DA)),
+                  top: BorderSide(
+                    color: AppColors.bottomNavBorderColor,
+                  ),
                 ),
               ),
               child: Row(
@@ -314,7 +343,7 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
                           style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
-                              color: Colors.black87),
+                              color: Colors.white),
                         ),
                       ),
                     ),
@@ -322,17 +351,34 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
                   Container(
                     width: 1,
                     height: 40,
-                    color: Colors.grey.shade400,
+                    color: Colors.grey.shade200,
                   ),
                   Expanded(
                     child: InkWell(
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const StoreClose(),
-                          ),
-                        );
+                        // Navigator.push(
+                        //   context,
+                        //   MaterialPageRoute(
+                        //     builder: (context) => const StoreClose(),
+                        //   ),
+                        // );
+                        if (_option == 'Temporary Closed (TC)' ||
+                            _option == 'Permanent Closed (PC)') {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => FmcgSdStoreClose(
+                                  storeList: widget.storeList,
+                                  storeData: widget.storeData,
+                                  option: _option,
+                                  auditorId: widget.auditorId),
+                            ),
+                          );
+                          //Get.to(() => StoreClose(item: item));
+                        } else {
+                          ShowAlert.showSnackBar(
+                              context, 'Development On Going');
+                        }
                       },
                       child: const Center(
                         child: Text(
@@ -340,7 +386,7 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
                           style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
-                              color: Colors.black87),
+                              color: Colors.white),
                         ),
                       ),
                     ),
@@ -356,6 +402,7 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
   // OTP Verification Dialog
   void _showOtpDialog() {
     TextEditingController otpController = TextEditingController();
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -369,16 +416,31 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context); // Close the dialog
+                Navigator.pop(context);
               },
               child: const Text('Cancel'),
             ),
             ElevatedButton(
               onPressed: () {
-                setState(() {
-                  otpVerified = true; // Mark OTP as verified
-                });
-                Navigator.pop(context); // Close the dialog
+                String enteredOtp = otpController.text.trim();
+                String? storedOtp = widget.storeData['geo_otp']
+                    ?.toString(); // ✅ Ensure it's a string
+
+                if (enteredOtp.isEmpty) {
+                  ShowAlert.showSnackBar(context, 'Please enter an OTP.');
+                  return;
+                }
+
+                if (enteredOtp == storedOtp) {
+                  setState(() {
+                    otpVerified = true;
+                  });
+                  ShowAlert.showSnackBar(context, 'OTP verified successfully!');
+                  Navigator.pop(context); //
+                } else {
+                  ShowAlert.showSnackBar(
+                      context, 'Invalid OTP. Please try again.');
+                }
               },
               child: const Text('Submit'),
             ),
@@ -432,7 +494,7 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
                     controller: landmarkController,
                     decoration: const InputDecoration(labelText: 'Landmark'),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
 
                   // Image capture
                   Center(
@@ -441,7 +503,7 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
                           _captureImage, // Call the image capture function
                       icon:
                           const Icon(Icons.camera_alt, size: 24), // Camera icon
-                      label: const Text('Capture Image'), // Button label
+                      label: const Text('Take Store Photo'), // Button label
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue, // Button background color
                         foregroundColor: Colors.white, // Text and icon color
@@ -454,68 +516,75 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
                     ),
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment:
+                        MainAxisAlignment.spaceEvenly, // Align left & right
+                    children: [
+                      // Update and Close buttons
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context); // Close the bottom sheet
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              Colors.blue, // Set the background color to blue
+                          foregroundColor:
+                              Colors.white, // Set the text color to white
+                        ),
+                        child: const Text('Close'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () async {
+                          final newName = nameController.text.trim();
+                          final newContact = contactController.text.trim();
+                          final newDetailAddress =
+                              detailAddressController.text.trim();
+                          final newLandmark = landmarkController.text.trim();
 
-                  // Update and Close buttons
-                  ElevatedButton(
-                    onPressed: () async {
-                      final newName = nameController.text.trim();
-                      final newContact = contactController.text.trim();
-                      final newDetailAddress =
-                          detailAddressController.text.trim();
-                      final newLandmark = landmarkController.text.trim();
+                          if (newName.isNotEmpty ||
+                              newContact.isNotEmpty ||
+                              newDetailAddress.isNotEmpty ||
+                              newLandmark.isNotEmpty) {
+                            setState(() {
+                              _storeName = newName;
+                              _contact = newContact;
+                              _detailAddress = newDetailAddress;
+                              _landmark = newLandmark;
+                            });
 
-                      if (newName.isNotEmpty ||
-                          newContact.isNotEmpty ||
-                          newDetailAddress.isNotEmpty ||
-                          newLandmark.isNotEmpty) {
-                        setState(() {
-                          _storeName = newName;
-                          _contact = newContact;
-                          _detailAddress = newDetailAddress;
-                          _landmark = newLandmark;
-                        });
+                            // Update the store data in the database
+                            final dbManager = DatabaseManager();
+                            await dbManager.updateStoreDetails(
+                                widget.dbPath,
+                                widget.storeData['code'], // Store ID
+                                newName,
+                                newContact,
+                                newDetailAddress,
+                                newLandmark,
+                                store_photo);
 
-                        // Update the store data in the database
-                        final dbManager = DatabaseManager();
-                        await dbManager.updateStoreDetails(
-                          widget.dbPath,
-                          widget.storeData['id'], // Store ID
-                          newName,
-                          newContact,
-                          newDetailAddress,
-                          newLandmark,
-                        );
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text(
+                                      'Store details updated successfully')),
+                            );
+                          }
 
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content:
-                                  Text('Store details updated successfully')),
-                        );
-                      }
-
-                      Navigator.pop(context); // Close the bottom sheet
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          Colors.blue, // Set the background color to blue
-                      foregroundColor:
-                          Colors.white, // Set the text color to white
-                    ),
-                    child: const Text('Update'),
+                          Navigator.pop(context); // Close the bottom sheet
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              Colors.blue, // Set the background color to blue
+                          foregroundColor:
+                              Colors.white, // Set the text color to white
+                        ),
+                        child: const Text('Update'),
+                      ),
+                    ],
                   ),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context); // Close the bottom sheet
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          Colors.blue, // Set the background color to blue
-                      foregroundColor:
-                          Colors.white, // Set the text color to white
-                    ),
-                    child: const Text('Close'),
-                  ),
+
+                  const SizedBox(height: 36),
                 ],
               ),
             ),
@@ -553,7 +622,7 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
         final String timestamp =
             DateTime.now().millisecondsSinceEpoch.toString();
         final String newFileName =
-            'store_${widget.storeData['id']}_$timestamp.jpg';
+            'store_${widget.storeData['store_code']}_$timestamp.jpg';
 
         final String newPath = '$customPath/$newFileName';
         final File resizedFile = File('${photo.path}_resized.jpg')
@@ -561,9 +630,33 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
         final File newImage = await resizedFile.copy(newPath);
 
         final prefs = await SharedPreferences.getInstance();
+        List<String> savedStoreImgPaths =
+            prefs.getStringList('storeImagePaths') ?? [];
         List<String> savedPaths = prefs.getStringList('imagePaths') ?? [];
+        // Check if 'store_photo' exists in the list & remove it
+        if (store_photo.trim().isNotEmpty) {
+          // Debugging: Print current paths
+          print("Existing savedPaths: $savedStoreImgPaths");
+          print("Existing savedPaths: $savedPaths");
+          print("store_photo to check: $store_photo");
+
+          // Normalize paths before checking
+          String normalizedStorePhoto = store_photo.trim();
+          savedStoreImgPaths
+              .removeWhere((path) => path.trim() == normalizedStorePhoto);
+          savedPaths.removeWhere((path) => path.trim() == normalizedStorePhoto);
+
+          print("Updated savedPaths after removal: $savedStoreImgPaths");
+        }
+        // Add the new path
+        savedStoreImgPaths.add(newPath);
         savedPaths.add(newPath);
+        // Save updated list to SharedPreferences
+        await prefs.setStringList('storeImagePaths', savedStoreImgPaths);
         await prefs.setStringList('imagePaths', savedPaths);
+        print("Updated Image Paths:  $savedPaths"); // Debugging
+
+        store_photo = newPath;
 
         setState(() {
           _capturedImage = newImage; // Update with the captured image

@@ -3,18 +3,22 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:store_audit/db/database_manager.dart';
-import 'package:store_audit/presentation/screens/fmcg_sd.dart';
-import 'package:store_audit/presentation/screens/fmcg_sd_store_details.dart';
-import 'package:store_audit/presentation/screens/home_screen_two.dart';
+import 'package:store_audit/presentation/screens/fmcg_sd_new_entry.dart';
+import 'package:store_audit/presentation/screens/fmcg_sd_new_intro.dart';
+import 'package:store_audit/presentation/screens/fmcg_sd_store_list.dart';
+import 'package:store_audit/presentation/screens/fmcg_sd_sku_list.dart';
 import 'package:store_audit/presentation/screens/store_close.dart';
 import 'package:store_audit/service/file_upload_download.dart';
 import 'package:store_audit/utility/assets_path.dart';
+import 'package:store_audit/utility/show_alert.dart';
 
 import '../../service/connectivity.dart';
 import '../../utility/app_colors.dart';
+import '../../utility/show_progress.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  final List<Map<String, dynamic>> fmcgStoreList;
+  const HomeScreen({super.key, required this.fmcgStoreList});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -24,92 +28,16 @@ class _HomeScreenState extends State<HomeScreen> {
   final ConnectionCheck checkConnection = ConnectionCheck();
   final DatabaseManager dbManager = DatabaseManager();
   final FileUploadDownload fileUploadDownload = FileUploadDownload();
-  Future<List<Map<String, dynamic>>>? _storeList;
+  List<Map<String, dynamic>> _fmcgStoreList = [];
   String _auditorId = '';
-  String? _dbPath;
+  String _dbPath = '';
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _loadDbpath();
-  }
-
-  Future<void> _loadDbpath() async {
-    setState(() {
-      _isLoading = true; // Show loading indicator
-    });
-
-    final prefs = await SharedPreferences.getInstance();
-    final dbPath = prefs.getString('dbPath');
-
-    String? pDbPath = prefs.getString('databasePath');
-
-    //print('newPath: $dbPath ....   oldPath: $pDbPath');
-
-    if (dbPath != null && dbPath.isNotEmpty) {
-      _dbPath = dbPath;
-      _storeList = loadDB();
-    } else {
-      _dbPath = null;
-      _storeList = fetchStoresFromServer();
-    }
-
-    setState(() {
-      _isLoading = false; // Hide loading indicator
-    });
-  }
-
-  Future<List<Map<String, dynamic>>> fetchStoresFromServer() async {
-    try {
-      setState(() {
-        _isLoading = true; // Show loading indicator
-      });
-
-      final dbPath = await dbManager.downloadAndSaveUserDatabase();
-      _dbPath = dbPath;
-      final db = await dbManager.loadDatabase(dbPath);
-      final stores = await db.query('stores');
-      await db.close();
-      _saveDbPath(dbPath);
-      _showSnackBar("Store updated");
-
-      return stores;
-    } catch (e) {
-      print('Failed to fetch stores: $e');
-      return [];
-    } finally {
-      setState(() {
-        _isLoading = false; // Hide loading indicator
-      });
-    }
-  }
-
-  Future<List<Map<String, dynamic>>> loadDB() async {
-    try {
-      setState(() {
-        _isLoading = true; // Show loading indicator
-      });
-
-      final db = await dbManager.loadDatabase(_dbPath!);
-      final stores = await db.query('stores');
-      await db.close();
-      _showSnackBar("Store loaded");
-
-      return stores;
-    } catch (e) {
-      print('Failed to load stores: $e');
-      return [];
-    } finally {
-      setState(() {
-        _isLoading = false; // Hide loading indicator
-      });
-    }
-  }
-
-  Future<void> _saveDbPath(String dbPath) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('dbPath', dbPath);
+    _fmcgStoreList = widget.fmcgStoreList;
+    _getSP();
   }
 
   Future<bool> _onWillPop() async {
@@ -141,13 +69,22 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _syncDatabase() async {
+  Future<void> _getSP() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _auditorId = prefs.getString('auditorId') ?? 'No ID Found';
+      _dbPath = prefs.getString('dbPath') ?? 'No Path Found';
+    });
+  }
+
+  Future<void> _syncDatabase() async {
     try {
-      // await fetchStoresFromServer();
+      ShowProgress.showProgressDialogWithMsg(context);
       await checkConnection.checkConnection(context);
-      // await fileUploadDownload.uploadFile(context);
-      // await fileUploadDownload.uploadImages(context);
-      // _showSnackBar('Database synchronized successfully.');
+      //await dbManager.downloadAndSaveUserDatabase();
+      //_fmcgStoreList = await dbManager.loadFMcgSdStores(_dbPath, _auditorId);
+      ShowProgress.hideProgressDialog(context);
+      //ShowAlert.showSnackBar(context, 'Database sync successfully');
     } catch (e) {
       _showSnackBar('Error syncing database: $e');
     }
@@ -178,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             // Main content
             FutureBuilder<List<Map<String, dynamic>>>(
-              future: _storeList,
+              future: Future.value(_fmcgStoreList),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -250,22 +187,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Icons.local_grocery_store,
                 label: 'FMCG SD',
                 onTap: () {
-                  if (_dbPath != null) {
+                  if (_fmcgStoreList != []) {
                     Navigator.push(
                       context,
-                      // MaterialPageRoute(
-                      //   builder: (context) => FmcgSdStoreDetails(
-                      //     storeData: storeList[1],
-                      //     dbPath: _dbPath!,
-                      //   ),
-                      // ),
                       MaterialPageRoute(
-                        builder: (context) =>
-                            FMCGSDStores(storeList: storeList),
+                        builder: (context) => FMCGSDStores(
+                            //storeList: storeList,
+                            dbPath: _dbPath,
+                            auditorId: _auditorId),
                       ),
                     );
                   } else {
-                    _showSnackBar('Database path is not set.');
+                    _showSnackBar('Database is not loaded.');
                   }
                 },
               ),
@@ -274,12 +207,26 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Icons.smoking_rooms,
                 label: 'Tobacco',
                 onTap: () {
+                  // Navigator.push(
+                  //   context,
+                  //   MaterialPageRoute(
+                  //     builder: (context) => FmcgSdSkuList(
+                  //         dbPath: _dbPath,
+                  //         storeCode: 'ZQY5FM',
+                  //         auditorId: _auditorId),
+                  //   ),
+                  // );
+
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => StoreClose(),
+                      builder: (context) => FmcgSdNewIntro(
+                          dbPath: _dbPath,
+                          storeCode: 'ZQY5FM',
+                          auditorId: _auditorId),
                     ),
                   );
+                  //ShowAlert.showSnackBar(context, 'Development On Going');
                 },
               ),
             ],
@@ -328,12 +275,5 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
-  }
-
-  Future<void> _loadAuditorId() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _auditorId = prefs.getString('auditorId') ?? 'No ID Found';
-    });
   }
 }

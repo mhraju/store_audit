@@ -6,24 +6,39 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../utility/show_progress.dart';
 
 class FileUploadDownload {
-  Future<void> uploadFile(BuildContext context) async {
-    final prefs = await SharedPreferences.getInstance();
-    final selectedFilePath = prefs.getString('dbPath');
-
-    if (selectedFilePath == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No file selected.')),
-      );
-      return;
-    }
-
-    // Show the progress dialog
-    ShowProgress.showProgressDialogWithMsg(context);
-
-    const String apiUrl =
-        'https://mcdphp8.bol-online.com/luminaries-app/api/v1/upload-db';
-
+  Future<void> uploadFile(
+    BuildContext context,
+  ) async {
     try {
+      //Initialize SharedPreferences properly
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? selectedFilePath = prefs.getString('dbPath');
+      final String? auditorId = prefs.getString('auditorId');
+
+      if (selectedFilePath == null || auditorId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('No file selected or missing auditor ID.')),
+        );
+        return;
+      }
+
+      // Check if the file exists before attempting upload
+      final file = File(selectedFilePath);
+      if (!file.existsSync()) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('File not found. Please check the path.')),
+        );
+        return;
+      }
+
+      // Show the progress dialog
+      ShowProgress.showProgressDialogWithMsg(context);
+
+      const String apiUrl =
+          'https://mcdphp8.bol-online.com/luminaries-app/api/v1/upload-db';
+
       var request = http.MultipartRequest('POST', Uri.parse(apiUrl));
 
       // Attach the file
@@ -31,35 +46,44 @@ class FileUploadDownload {
         await http.MultipartFile.fromPath('file', selectedFilePath),
       );
 
-      // Optionally, add other fields
-      request.fields['code'] = '852456'; // Example field
+      // Add extra parameters
+      request.fields['code'] = auditorId;
 
       // Send the request
       var response = await request.send();
 
+      // Hide the progress dialog safely
+      if (Navigator.canPop(context)) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+
+      // Handle response
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('File uploaded successfully')),
+          const SnackBar(content: Text('✅ File uploaded successfully!')),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Upload failed. Status code: ${response.statusCode}'),
+            content:
+                Text('⚠️ Upload failed. Status code: ${response.statusCode}'),
           ),
         );
       }
     } catch (e) {
+      // Ensure progress dialog is closed on error
+      if (Navigator.canPop(context)) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error uploading file: $e')),
+        SnackBar(content: Text('❌ Error uploading file: $e')),
       );
-    } finally {
-      // Dismiss the progress dialog
-      Navigator.of(context, rootNavigator: true).pop();
     }
   }
 
   Future<void> uploadImages(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
+    final String? auditorId = prefs.getString('auditorId');
     List<String> savedPaths = prefs.getStringList('imagePaths') ?? [];
 
     if (savedPaths.isEmpty) {
@@ -77,7 +101,9 @@ class FileUploadDownload {
 
     try {
       var request = http.MultipartRequest('POST', Uri.parse(apiUrl))
-        ..fields['code'] = '852456';
+        ..fields['code'] = auditorId!;
+
+      print("Total Image Paths:  $savedPaths");
 
       for (String path in List.from(savedPaths)) {
         File imageFile = File(path);
@@ -100,9 +126,9 @@ class FileUploadDownload {
       var response = await request.send();
 
       if (response.statusCode == 200) {
-        for (String path in List.from(savedPaths)) {
-          File(path).deleteSync();
-        }
+        // for (String path in List.from(savedPaths)) {
+        //   File(path).deleteSync();
+        // }
 
         await prefs.remove('imagePaths');
         ScaffoldMessenger.of(context).showSnackBar(
