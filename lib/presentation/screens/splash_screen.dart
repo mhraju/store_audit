@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:store_audit/presentation/screens/fmcg_sd_sku_list.dart';
 import 'package:store_audit/presentation/screens/home_screen.dart';
-import 'package:store_audit/presentation/screens/home_screen_two.dart';
 import 'package:store_audit/presentation/screens/login_screen.dart';
-import 'package:store_audit/presentation/screens/store_close.dart';
 import 'package:store_audit/utility/assets_path.dart';
 
 import '../../db/database_manager.dart';

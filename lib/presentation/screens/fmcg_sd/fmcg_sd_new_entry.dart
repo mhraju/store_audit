@@ -1,18 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:store_audit/presentation/screens/fmcg_sd/fmcg_sd_new_intro.dart';
+import 'package:store_audit/presentation/screens/fmcg_sd/fmcg_sd_sku_list.dart';
 
-import '../../db/database_manager.dart';
-import '../../utility/app_colors.dart';
-import '../../utility/show_alert.dart';
+import '../../../db/database_manager.dart';
+import '../../../utility/app_colors.dart';
+import '../../../utility/show_alert.dart';
 
 class FmcgSdNewEntry extends StatefulWidget {
   final String dbPath;
   final String storeCode;
   final String auditorId;
+  final String option;
+  final String shortCode;
+  final String storeName;
   const FmcgSdNewEntry({
     super.key,
     required this.dbPath,
     required this.storeCode,
     required this.auditorId,
+    required this.option,
+    required this.shortCode,
+    required this.storeName,
   });
 
   @override
@@ -148,32 +156,32 @@ class _FmcgSdNewEntryState extends State<FmcgSdNewEntry> {
                         ElevatedButton(
                           onPressed: () async {
                             // ✅ Insert or Update SKU data in the database
-                            final dbManager = DatabaseManager();
                             await dbManager.insertFMcgSdStoreProduct(
+                              context,
                               widget.dbPath,
                               widget.storeCode,
                               widget.auditorId,
                               skuItem['code'],
                             );
 
-                            await dbManager.insertOrUpdateFmcgSdSkuDetails(
-                              widget.dbPath,
-                              widget.storeCode,
-                              widget.auditorId,
-                              skuItem['code'],
-                              skuItem['openstock']?.toString() ?? '0',
-                              skuItem['purchase']?.toString() ?? '0',
-                              skuItem['closestock']?.toString() ?? '0',
-                              skuItem['sale']?.toString() ?? '0',
-                              skuItem['wholesale']?.toString() ?? '0',
-                              skuItem['mrp']?.toString() ?? '0',
-                              skuItem['sale_last_month']?.toString() ?? '0',
-                              skuItem['Sale_last_to_last_month']?.toString() ??
-                                  '0',
-                            );
+                            // await dbManager.insertOrUpdateFmcgSdSkuDetails(
+                            //   widget.dbPath,
+                            //   widget.storeCode,
+                            //   widget.auditorId,
+                            //   skuItem['code'],
+                            //   skuItem['openstock']?.toString() ?? '0',
+                            //   skuItem['purchase']?.toString() ?? '0',
+                            //   skuItem['closestock']?.toString() ?? '0',
+                            //   skuItem['sale']?.toString() ?? '0',
+                            //   skuItem['wholesale']?.toString() ?? '0',
+                            //   skuItem['mrp']?.toString() ?? '0',
+                            //   skuItem['sale_last_month']?.toString() ?? '0',
+                            //   skuItem['Sale_last_to_last_month']?.toString() ??
+                            //       '0',
+                            // );
 
-                            ShowAlert.showSnackBar(context,
-                                'New SKU inserted and updated successfully');
+                            // ShowAlert.showSnackBar(context,
+                            //     'New SKU inserted and updated successfully');
                             Navigator.pop(context);
                           },
                           style: ElevatedButton.styleFrom(
@@ -259,7 +267,7 @@ class _FmcgSdNewEntryState extends State<FmcgSdNewEntry> {
                         ),
                       )
                     : ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
                         itemCount: filteredSkuData.length,
                         itemBuilder: (context, index) {
                           final skuItem = filteredSkuData[index];
@@ -290,7 +298,19 @@ class _FmcgSdNewEntryState extends State<FmcgSdNewEntry> {
                   Expanded(
                     child: InkWell(
                       onTap: () {
-                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => FmcgSdSkuList(
+                              dbPath: widget.dbPath,
+                              storeCode: widget.storeCode,
+                              auditorId: widget.auditorId,
+                              option: widget.option,
+                              shortCode: widget.shortCode,
+                              storeName: widget.storeName,
+                            ),
+                          ),
+                        );
                       },
                       child: const Center(
                         child: Text(
@@ -334,11 +354,19 @@ class _FmcgSdNewEntryState extends State<FmcgSdNewEntry> {
   }
 
   void _navigateToNextPage() {
-    ShowAlert.showSnackBar(context, 'Audit Ok');
+    ShowAlert.showSnackBar(context, 'Development on going');
     // Uncomment if you want to navigate to another page
     // Navigator.push(
     //   context,
-    //   MaterialPageRoute(builder: (context) => const NextPage()),
+    //   MaterialPageRoute(
+    //     builder: (context) => FmcgSdNewIntro(
+    //       dbPath: widget.dbPath,
+    //       storeCode: widget.storeCode,
+    //       auditorId: widget.auditorId,
+    //       option: widget.option,
+    //       shortCode: widget.shortCode,
+    //     ),
+    //   ),
     // );
   }
 

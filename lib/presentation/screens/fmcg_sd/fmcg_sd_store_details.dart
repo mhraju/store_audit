@@ -6,11 +6,11 @@ import 'package:image/image.dart' as img; // Import the image package
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:store_audit/db/database_manager.dart';
-import 'package:store_audit/presentation/screens/fmcg_sd_sku_list.dart';
+import 'package:store_audit/presentation/screens/fmcg_sd/fmcg_sd_sku_list.dart';
+import 'package:store_audit/presentation/screens/fmcg_sd/fmcg_sd_store_audit.dart';
 
-import '../../utility/app_colors.dart';
-import '../../utility/show_alert.dart';
-import 'fmcg_sd_store_close.dart';
+import '../../../utility/app_colors.dart';
+import '../../../utility/show_alert.dart';
 
 class FmcgSdStoreDetails extends StatefulWidget {
   final List<Map<String, dynamic>> storeList;
@@ -18,13 +18,15 @@ class FmcgSdStoreDetails extends StatefulWidget {
   final String dbPath;
   final String auditorId;
   final String option;
+  final String shortCode;
   const FmcgSdStoreDetails(
       {super.key,
       required this.storeList,
       required this.storeData,
       required this.dbPath,
       required this.auditorId,
-      required this.option});
+      required this.option,
+      required this.shortCode});
 
   @override
   State<FmcgSdStoreDetails> createState() => _FmcgSdStoreDetailsState();
@@ -367,17 +369,30 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => FmcgSdStoreClose(
-                                  storeList: widget.storeList,
-                                  storeData: widget.storeData,
-                                  option: _option,
-                                  auditorId: widget.auditorId),
+                              builder: (context) => FmcgSdStoreAudit(
+                                dbPath: widget.dbPath,
+                                storeCode: widget.storeData['code'],
+                                auditorId: widget.auditorId,
+                                option: widget.option,
+                                shortCode: widget.shortCode,
+                              ),
                             ),
                           );
                           //Get.to(() => StoreClose(item: item));
                         } else {
-                          ShowAlert.showSnackBar(
-                              context, 'Development On Going');
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => FmcgSdSkuList(
+                                dbPath: widget.dbPath,
+                                storeCode: widget.storeData['code'],
+                                auditorId: widget.auditorId,
+                                option: _option,
+                                shortCode: widget.shortCode,
+                                storeName: _storeName,
+                              ),
+                            ),
+                          );
                         }
                       },
                       child: const Center(
@@ -555,9 +570,10 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
 
                             // Update the store data in the database
                             final dbManager = DatabaseManager();
-                            await dbManager.updateStoreDetails(
+                            await dbManager.updateFmcgSdStoreDetails(
                                 widget.dbPath,
-                                widget.storeData['code'], // Store ID
+                                widget.storeData['code'],
+                                widget.auditorId, // Store ID
                                 newName,
                                 newContact,
                                 newDetailAddress,

@@ -4,8 +4,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:store_audit/utility/show_alert.dart';
-import 'package:store_audit/utility/show_progress.dart';
+import '../utility/show_alert.dart';
 
 class DatabaseManager {
   // Get the database URL dynamically using the auditor ID
@@ -88,9 +87,10 @@ class DatabaseManager {
   }
 
   // Function to update store details
-  Future<void> updateStoreDetails(
+  Future<void> updateFmcgSdStoreDetails(
     String dbPath,
     String storeCode,
+    String auditorId,
     String name,
     String contact,
     String detailAddress,
@@ -110,12 +110,14 @@ class DatabaseManager {
           'address': detailAddress,
           'land_mark': landmark,
           'store_photo': store_photo,
+          'updated_by': auditorId,
+          'updated_at': DateTime.now().toIso8601String(),
         },
         where: 'code COLLATE NOCASE = ?', // Ensures case-insensitive matching
         whereArgs: [storeCode],
       );
 
-      print('✅ Store details updated successfully for store_code: $storeCode');
+      print('Store details updated successfully for store_code: $storeCode');
 
       // Close the database
       await db.close();
@@ -126,9 +128,10 @@ class DatabaseManager {
     }
   }
 
-  Future<void> closeStore(
+  Future<void> closeOrUpdateFmcgSdStore(
     String dbPath,
     String storeCode,
+    String auditorId,
     int status,
     int updateStatus,
     String statusName,
@@ -148,11 +151,13 @@ class DatabaseManager {
           'update_status': updateStatus,
           'status_name': statusName,
           'status_short_name': statusShortName,
+          'updated_by': auditorId,
+          'updated_at': DateTime.now().toIso8601String(),
         },
         where: 'code COLLATE NOCASE = ?', // Ensures case-insensitive matching
         whereArgs: [storeCode],
       );
-      print('✅ Store table updated successfully for store_code: $storeCode');
+      print('Store table updated successfully for store_code: $storeCode');
 
       // Update the store schedule
       await db.update(
@@ -160,13 +165,15 @@ class DatabaseManager {
         {
           'selfie': selfie,
           'attachment': attachment,
+          'updated_by': auditorId,
+          'updated_at': DateTime.now().toIso8601String(),
         },
         where:
             'store_code COLLATE NOCASE = ?', // Ensures case-insensitive matching
         whereArgs: [storeCode],
       );
       print(
-          '✅ Store Schedules table updated successfully for store_code: $storeCode');
+          'Store Schedules table updated successfully for store_code: $storeCode');
 
       // Close the database
       await db.close();
@@ -183,32 +190,53 @@ class DatabaseManager {
     try {
       print('storecode: $storeCode');
       final db = await loadDatabase(dbPath);
+
       final storeProducts = await db.rawQuery('''
   SELECT 
     sp.*, 
     p.*, 
+
+    -- ✅ Keep current month fields, show '0' or empty if missing
     COALESCE(fsu.id, 0) AS fmcg_update_id,
     COALESCE(fsu.date, '') AS update_date,
     COALESCE(fsu.panel, '') AS panel,
     COALESCE(fsu.employee_code, '') AS employee_code,
-    COALESCE(fsu.openstock, 0) AS openstock,
-    COALESCE(fsu.purchase, 0) AS purchase,
-    COALESCE(fsu.closestock, 0) AS closestock,
-    COALESCE(fsu.sale, 0) AS sale,
-    COALESCE(fsu.wholesale, 0) AS wholesale,
-    COALESCE(fsu.sale_last_month, 0) AS sale_last_month,
+    COALESCE(fsu.openstock, '') AS openstock,
+    COALESCE(fsu.purchase, '') AS purchase,
+    COALESCE(fsu.closestock, '') AS closestock,
+    COALESCE(fsu.mrp, '') AS mrp,
+    COALESCE(fsu.sale, '') AS sale,
+    COALESCE(fsu.wholesale, '') AS wholesale,
+    COALESCE(fsu.sale_last_month, '') AS sale_last_month,
+    COALESCE(fsu.sale_last_to_last_month, '') AS sale_last_to_last_month,
     COALESCE(fsu.status, '') AS status,
     COALESCE(fsu.status_code, '') AS status_code,
-    COALESCE(fsu.audit_type, '') AS audit_type
+    COALESCE(fsu.audit_type, '') AS audit_type,
+
+    -- ✅ Always keep last month's `mrp` and `closestock` separately
+    COALESCE(prev_fsu.mrp, '') AS prev_mrp,
+    COALESCE(prev_fsu.closestock, '') AS prev_closestock
+
   FROM store_products sp
   JOIN products p ON sp.product_code = p.code
+
+  -- ✅ Current month data from 'fmcg_store_updates'
   LEFT JOIN fmcg_store_updates fsu 
-  ON sp.store_code = fsu.store_code AND sp.product_code = fsu.product_code
-  WHERE sp.store_code = ?
+    ON sp.store_code = fsu.store_code 
+    AND sp.product_code = fsu.product_code
+    AND substr(fsu.date, 1, 7) = strftime('%Y-%m', 'now')  -- Current month
+
+  -- ✅ Last month’s data from 'fmcg_store_updates' (always fetched separately)
+  LEFT JOIN fmcg_store_updates prev_fsu
+    ON sp.store_code = prev_fsu.store_code 
+    AND sp.product_code = prev_fsu.product_code
+    AND substr(prev_fsu.date, 1, 7) = strftime('%Y-%m', 'now', '-1 month')  -- Last month
+
+  WHERE sp.store_code = ? 
   ORDER BY p.category_name, p.brand ASC;
 ''', [storeCode]);
 
-      print(storeProducts);
+      print('Length: ${storeProducts.length} _ $storeProducts');
       await db.close();
       return storeProducts;
     } catch (e) {
@@ -231,6 +259,7 @@ class DatabaseManager {
     String mrp,
     String avgSaleLastMonth,
     String avgSaleLastToLastMonth,
+    String panel,
   ) async {
     try {
       final Database db = await openDatabase(dbPath);
@@ -238,15 +267,23 @@ class DatabaseManager {
       // Check if the record exists
       List<Map<String, dynamic>> existingRows = await db.query(
         'fmcg_store_updates',
-        where: 'store_code = ? AND product_code = ?',
+        where:
+            'store_code = ? AND product_code = ? AND substr(date, 1, 7) = strftime("%Y-%m", "now")',
         whereArgs: [storeCode, productCode],
       );
 
+      print('mrp: $mrp');
+
       if (existingRows.isNotEmpty) {
-        // ✅ UPDATE existing record
+        // UPDATE existing record
         await db.update(
           'fmcg_store_updates',
           {
+            'date': DateTime.now()
+                .toLocal()
+                .toIso8601String()
+                .substring(0, 10), // Ensures YYYY-MM-DD format
+            'panel': panel,
             'openstock': openStock,
             'purchase': purchase,
             'closestock': closeStock,
@@ -254,20 +291,29 @@ class DatabaseManager {
             'wholesale': wholesale,
             'mrp': mrp,
             'sale_last_month': avgSaleLastMonth,
-            'Sale_last_to_last_month': avgSaleLastToLastMonth,
+            'sale_last_to_last_month': avgSaleLastToLastMonth,
             'updated_by': auditorId,
-            'updated_at': DateTime.now().toIso8601String(),
+            'updated_at': DateTime.now()
+                .toLocal()
+                .toIso8601String(), // Ensures timezone consistency
           },
-          where: 'store_code = ? AND product_code = ?',
+          where: '''
+    store_code = ? 
+    AND product_code = ? 
+    AND substr(date, 1, 7) = strftime('%Y-%m', 'now')
+  ''',
           whereArgs: [storeCode, productCode],
         );
-        print('✅ Sku details updated successfully for store_code: $storeCode');
+        print('Sku details updated successfully for store_code: $storeCode');
       } else {
-        // ✅ INSERT new record
+        // INSERT new record
         await db.insert(
           'fmcg_store_updates',
           {
+            'date': DateTime.now().toLocal().toIso8601String().substring(0, 10),
+            'panel': panel,
             'store_code': storeCode,
+            'employee_code': auditorId,
             'product_code': productCode,
             'openstock': openStock,
             'purchase': purchase,
@@ -276,12 +322,12 @@ class DatabaseManager {
             'wholesale': wholesale,
             'mrp': mrp,
             'sale_last_month': avgSaleLastMonth,
-            'Sale_last_to_last_month': avgSaleLastToLastMonth,
+            'sale_last_to_last_month': avgSaleLastToLastMonth,
             'created_by': auditorId,
             'created_at': DateTime.now().toIso8601String(),
           },
         );
-        print('✅ Sku details insert successfully for store_code: $storeCode');
+        print('Sku details insert successfully for store_code: $storeCode');
       }
 
       // Close the database
@@ -293,7 +339,6 @@ class DatabaseManager {
     }
   }
 
-  // Call this func after Log in
   Future<List<Map<String, dynamic>>> loadFMcgSdProductsAll(
       String dbPath, String auditorId) async {
     try {
@@ -308,23 +353,26 @@ class DatabaseManager {
     }
   }
 
-  Future<List<String>> loadFmcgSdProductCategories(String dbPath) async {
+  Future<List<Map<String, dynamic>>> loadFmcgSdProductCategories(
+      String dbPath) async {
     try {
       final db = await loadDatabase(dbPath);
-      // Fetch DISTINCT category_name values sorted alphabetically
-      final List<Map<String, dynamic>> result = await db.rawQuery(
-          'SELECT DISTINCT category_name FROM products ORDER BY category_name ASC;');
+      final fmcgSdProductCategories = await db.rawQuery('''
+      SELECT DISTINCT category_code, category_name 
+      FROM products 
+      ORDER BY category_name;
+    ''');
       await db.close();
-      // Convert to List<String>
-      return result.map((row) => row['category_name'] as String).toList();
+      return fmcgSdProductCategories;
     } catch (e) {
-      print('Failed to load categories: $e');
-      return []; // Return an empty list if an error occurs
+      print('Failed to load FMCG and SD product categories: $e');
+      return []; // Return empty list on failure
     }
   }
 
   // Insert a record into 'store_products' table
   Future<void> insertFMcgSdStoreProduct(
+    BuildContext context,
     String dbPath,
     String storeCode,
     String auditorId,
@@ -334,20 +382,89 @@ class DatabaseManager {
       // Open the database
       final Database db = await openDatabase(dbPath);
 
-      // Update the store details
-      await db.insert(
+      // Check if the record exists
+      List<Map<String, dynamic>> existingRows = await db.query(
         'store_products',
+        where: 'store_code = ? AND product_code = ?',
+        whereArgs: [storeCode, productCode],
+      );
+
+      if (existingRows.isNotEmpty) {
+        ShowAlert.showSnackBar(
+            context, 'This item is already present to this store SKU list');
+      } else {
+        // Update the store details
+        await db.insert(
+          'store_products',
+          {
+            'store_code': storeCode,
+            'product_code': productCode,
+            'created_by': auditorId, // Nullable
+            'created_at': DateTime.now().toIso8601String(),
+          },
+        );
+        ShowAlert.showSnackBar(
+            context, 'New SKU inserted and updated successfully');
+        print('New entry is inserted successfully for store_code: $storeCode');
+      }
+
+      // Close the database
+      await db.close();
+    } catch (e) {
+      // Handle errors
+      print('Error inserting new entry: $e');
+      throw Exception('Failed to insert new entry: $e');
+    }
+  }
+
+  // Insert a record into 'product_introductions' table
+  Future<void> insertFMcgSdProductIntro(
+    String dbPath,
+    String auditorId,
+    String productCode,
+    String category,
+    String company,
+    String country,
+    String brand,
+    String description,
+    String packType,
+    String packSize,
+    String promoType,
+    String mrp,
+    String photo1,
+    String photo2,
+    String photo3,
+    String photo4,
+  ) async {
+    try {
+      // Open the database
+      final Database db = await openDatabase(dbPath);
+
+      await db.insert(
+        'product_introductions',
         {
-          'store_code': storeCode,
-          'product_code': productCode,
-          'created_by': auditorId, // Nullable
-          'updated_by': auditorId, // Nullable
+          'employee_code': auditorId,
+          'update_code': productCode,
+          'category': category,
+          'company': company,
+          'country': country,
+          'brand': brand,
+          'description': description,
+          'pack_type': packType,
+          'pack_size': packSize,
+          'promotype': promoType,
+          'mrp': mrp,
+          'photo1': photo1,
+          'photo2': photo2,
+          'photo3': photo3,
+          'photo4': photo4,
+          'update_status': 1,
+          'created_by': auditorId,
           'created_at': DateTime.now().toIso8601String(),
-          'updated_at': DateTime.now().toIso8601String(),
         },
       );
 
-      print('✅ New entry is updated successfully for store_code: $storeCode');
+      print('New Intro is inserted successfully');
 
       // Close the database
       await db.close();
@@ -356,5 +473,95 @@ class DatabaseManager {
       print('Error updating new entry: $e');
       throw Exception('Failed to update new entry: $e');
     }
+  }
+
+  Future<void> insertFMcgSdProducts(
+    String dbPath,
+    String auditorId,
+    String index,
+    String productCode,
+    String categoryCode,
+    String categoryName,
+    String company,
+    String brand,
+    String subBrand,
+    String description,
+    String packType,
+    String packSize,
+    String promoType,
+    String mrp,
+  ) async {
+    try {
+      // Open the database
+      final Database db = await openDatabase(dbPath);
+
+      await db.insert(
+        'products',
+        {
+          'index': index,
+          'code': productCode,
+          'category_code': categoryCode,
+          'category_name': categoryName,
+          'company': company,
+          'brand': brand,
+          'sub_brand': subBrand,
+          'item_description': description,
+          'pack_type': packType,
+          'pack_size': packSize,
+          'promotype': promoType,
+          'mrp': mrp,
+          'update_status': 1,
+          'created_by': auditorId,
+          'created_at': DateTime.now().toIso8601String(),
+        },
+      );
+
+      print('New Product is inserted successfully');
+
+      // Close the database
+      await db.close();
+    } catch (e) {
+      // Handle errors
+      print('Error updating new entry: $e');
+      throw Exception('Failed to update new entry: $e');
+    }
+  }
+
+  Future<Map<String, String>> getPrevMrpAndStockFmcgSd(
+    String dbPath,
+    String auditorId,
+    String storeCode,
+    String productCode,
+  ) async {
+    // Open the database
+    final Database db = await openDatabase(dbPath);
+
+    // Default values in case no data is found
+    String prevMrp = '50';
+    String prevClosingStock = '50';
+
+    final result = await db.rawQuery('''
+    SELECT mrp, closestock 
+    FROM fmcg_store_updates 
+    WHERE store_code = ? 
+      AND product_code = ? 
+      AND date LIKE strftime('%Y-%m', 'now', '-1 month') || '%'
+    LIMIT 1;
+  ''', [storeCode, productCode]);
+
+    print(result);
+
+    // If data exists, assign the values
+    if (result.isNotEmpty) {
+      if (result.first['mrp'] != null) {
+        prevMrp = result.first['mrp'].toString();
+      }
+      if (result.first['closestock'] != null) {
+        prevClosingStock = result.first['closestock'].toString();
+      }
+    }
+    print('prev data $prevClosingStock _ $prevMrp');
+
+    return {'prevMrp': prevMrp, 'prevClosingStock': prevClosingStock};
   }
 }

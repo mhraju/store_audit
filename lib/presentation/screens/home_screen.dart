@@ -3,11 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:store_audit/db/database_manager.dart';
-import 'package:store_audit/presentation/screens/fmcg_sd_new_entry.dart';
-import 'package:store_audit/presentation/screens/fmcg_sd_new_intro.dart';
-import 'package:store_audit/presentation/screens/fmcg_sd_store_list.dart';
-import 'package:store_audit/presentation/screens/fmcg_sd_sku_list.dart';
-import 'package:store_audit/presentation/screens/store_close.dart';
+import 'package:store_audit/presentation/screens/fmcg_sd/fmcg_sd_sku_list.dart';
+import 'package:store_audit/presentation/screens/fmcg_sd/fmcg_sd_store_list.dart';
 import 'package:store_audit/service/file_upload_download.dart';
 import 'package:store_audit/utility/assets_path.dart';
 import 'package:store_audit/utility/show_alert.dart';
@@ -207,25 +204,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Icons.smoking_rooms,
                 label: 'Tobacco',
                 onTap: () {
-                  // Navigator.push(
-                  //   context,
-                  //   MaterialPageRoute(
-                  //     builder: (context) => FmcgSdSkuList(
-                  //         dbPath: _dbPath,
-                  //         storeCode: 'ZQY5FM',
-                  //         auditorId: _auditorId),
-                  //   ),
-                  // );
-
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => FmcgSdNewIntro(
+                      builder: (context) => FmcgSdSkuList(
                           dbPath: _dbPath,
                           storeCode: 'ZQY5FM',
-                          auditorId: _auditorId),
+                          auditorId: _auditorId,
+                          option: 'Test',
+                          shortCode: 'RA',
+                          storeName: 'Sadek Departmental Store'),
                     ),
                   );
+
                   //ShowAlert.showSnackBar(context, 'Development On Going');
                 },
               ),

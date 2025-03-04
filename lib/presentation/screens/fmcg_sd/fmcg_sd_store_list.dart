@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:get/get_core/src/get_main.dart';
 import 'package:intl/intl.dart';
-import 'package:store_audit/utility/show_progress.dart';
-import '../../db/database_manager.dart';
-import '../../utility/app_colors.dart';
-import '../../utility/show_alert.dart';
+import 'package:store_audit/utility/show_alert.dart';
+import '../../../db/database_manager.dart';
+import '../../../utility/app_colors.dart';
 import 'fmcg_sd_store_details.dart';
 
 class FMCGSDStores extends StatefulWidget {
@@ -218,7 +216,7 @@ class _FMCGSDStoresState extends State<FMCGSDStores>
         final item = data[index];
         int status = int.tryParse(item['status'].toString()) ?? -1;
         return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           child: ListTile(
             title: Text(
               item['name'],
@@ -266,7 +264,12 @@ class _FMCGSDStoresState extends State<FMCGSDStores>
             //   ],
             // ),
             onTap: () {
-              _showOptionsDialog(context, item);
+              if (item['status_short_name'] != 'RA') {
+                _showOptionsDialog(context, item);
+              } else {
+                ShowAlert.showSnackBar(
+                    context, 'This store has already audited for this month');
+              }
             },
           ),
         );
@@ -298,15 +301,16 @@ class _FMCGSDStoresState extends State<FMCGSDStores>
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildOption(context, 'Initial Audit (IA)', item),
+              _buildOption(context, 'Initial Audit (IA)', 'IA', item),
               const Divider(),
-              _buildOption(context, 'Re Audit (RA)', item),
+              _buildOption(context, 'Re Audit (RA)', 'RA', item),
               const Divider(),
-              _buildOption(context, 'Temporary Closed (TC)', item),
+              _buildOption(context, 'Temporary Closed (TC)', 'TC', item),
               const Divider(),
-              _buildOption(context, 'Permanent Closed (PC)', item),
+              _buildOption(context, 'Permanent Closed (PC)', 'PC', item),
               const Divider(),
-              _buildOption(context, 'Consider as New Store (CANS)', item),
+              _buildOption(
+                  context, 'Consider as New Store (CANS)', 'CANS', item),
             ],
           ),
         );
@@ -314,7 +318,8 @@ class _FMCGSDStoresState extends State<FMCGSDStores>
     );
   }
 
-  Widget _buildOption(BuildContext context, String option, item) {
+  Widget _buildOption(
+      BuildContext context, String option, String shortCode, item) {
     return ListTile(
       title: Text(option),
       onTap: () {
@@ -327,7 +332,8 @@ class _FMCGSDStoresState extends State<FMCGSDStores>
                   storeData: item,
                   dbPath: _dbPath,
                   auditorId: _auditorId,
-                  option: option)),
+                  option: option,
+                  shortCode: shortCode)),
         ).then((value) {
           _refreshData(); // Call method to refresh database data
         });

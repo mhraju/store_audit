@@ -3,27 +3,24 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img; // Import the image package
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:store_audit/utility/show_alert.dart';
-
 import '../../db/database_manager.dart';
 import '../../utility/app_colors.dart';
 import '../../utility/show_progress.dart';
-import 'fmcg_sd_store_list.dart';
+import 'fmcg_sd/fmcg_sd_store_list.dart';
 
 class FmcgSdStoreClose extends StatefulWidget {
-  final List<Map<String, dynamic>> storeList;
-  final Map<String, dynamic> storeData;
   final String option;
+  final String shortCode;
   final String auditorId;
 
-  const FmcgSdStoreClose(
-      {super.key,
-      required this.storeList,
-      required this.storeData,
-      required this.option,
-      required this.auditorId});
+  const FmcgSdStoreClose({
+    super.key,
+    required this.option,
+    required this.shortCode,
+    required this.auditorId,
+  });
 
   @override
   State<FmcgSdStoreClose> createState() => _FmcgSdStoreCloseState();
@@ -41,21 +38,7 @@ class _FmcgSdStoreCloseState extends State<FmcgSdStoreClose> {
   @override
   void initState() {
     super.initState();
-    _storeData = widget.storeData;
-  }
-
-  String sortStatus() {
-    if (widget.option == 'Initial Audit (IA)') {
-      return 'IA';
-    } else if (widget.option == 'Re Audit (RA)') {
-      return 'RA';
-    } else if (widget.option == 'Temporary Closed (TC)') {
-      return 'TC';
-    } else if (widget.option == 'Permanent Closed (PC)') {
-      return 'PC';
-    } else {
-      return 'CANS';
-    }
+    //_storeData = widget.storeData;
   }
 
   /// **Load saved images from SharedPreferences**
@@ -103,16 +86,17 @@ class _FmcgSdStoreCloseState extends State<FmcgSdStoreClose> {
       return;
     }
 
-    await dbManager.closeStore(
-      dbPath,
-      _storeData['code'],
-      1,
-      1,
-      widget.option,
-      sortStatus(),
-      _selfieImage!.path,
-      imagePaths.join(','), // ✅ Use comma-separated string
-    );
+    // await dbManager.closeStore(
+    //   dbPath,
+    //   _storeData['code'],
+    //   widget.auditorId,
+    //   1,
+    //   1,
+    //   widget.option,
+    //   widget.shortCode,
+    //   _selfieImage!.path,
+    //   imagePaths.join(','), // ✅ Use comma-separated string
+    // );
 
     ShowAlert.showSnackBar(context, 'Store update submitted successfully!');
 
@@ -233,7 +217,7 @@ class _FmcgSdStoreCloseState extends State<FmcgSdStoreClose> {
       appBar: AppBar(
         backgroundColor: AppColors.appBarColor,
         elevation: 0,
-        title: const Text('Store Close'),
+        title: const Text('Store Update'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
@@ -259,6 +243,7 @@ class _FmcgSdStoreCloseState extends State<FmcgSdStoreClose> {
                   onTap: _takeSelfie,
                   child: Container(
                     height: 200,
+                    width: 200,
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.grey),
                       borderRadius: BorderRadius.circular(8.0),
@@ -270,8 +255,7 @@ class _FmcgSdStoreCloseState extends State<FmcgSdStoreClose> {
                               children: [
                                 Icon(Icons.camera_alt,
                                     size: 50, color: Colors.grey),
-                                Text(
-                                    'Please add a selfie near the store location'),
+                                Text('Add a selfie near the store location'),
                               ],
                             ),
                           )

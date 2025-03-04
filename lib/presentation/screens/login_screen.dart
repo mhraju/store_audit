@@ -148,7 +148,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                 controller: _auditorIdController,
                 decoration: const InputDecoration(
                   border: InputBorder.none,
-                  hintText: 'Give Auditor ID:',
+                  hintText: 'Auditor ID',
                   hintStyle: TextStyle(
                     color: Color(0xFF888EA2),
                     fontFamily: 'Inter',
