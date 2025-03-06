@@ -45,6 +45,7 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
   final List<File> _imageFiles = [];
   String? selectedCategoryCode;
   String? selectedCategoryName;
+  String? selectedOption; // No default value
 
   @override
   void initState() {
@@ -57,8 +58,7 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
       isLoading = true; // Ensure UI shows loading state
     });
     // await Future.delayed(const Duration(seconds: 1));
-    final fetchedData =
-        await dbManager.loadFmcgSdProductCategories(widget.dbPath);
+    final fetchedData = await dbManager.loadFmcgSdProductCategories(widget.dbPath);
     setState(() {
       categories = fetchedData;
       isLoading = false;
@@ -85,18 +85,14 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
         final customPath = directory.path;
 
         // Resize image
-        final img.Image? originalImage =
-            img.decodeImage(await File(pickedFile.path).readAsBytes());
+        final img.Image? originalImage = img.decodeImage(await File(pickedFile.path).readAsBytes());
         if (originalImage != null) {
-          final img.Image resizedImage =
-              img.copyResize(originalImage, width: 500, height: 500);
-          final String timestamp =
-              DateTime.now().millisecondsSinceEpoch.toString();
+          final img.Image resizedImage = img.copyResize(originalImage, width: 500, height: 500);
+          final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
           final String newPath = '$customPath/product_$timestamp.jpg';
 
           // Save resized image
-          final File resizedFile = File('${pickedFile.path}_resized.jpg')
-            ..writeAsBytesSync(img.encodeJpg(resizedImage));
+          final File resizedFile = File('${pickedFile.path}_resized.jpg')..writeAsBytesSync(img.encodeJpg(resizedImage));
           final File newImage = await resizedFile.copy(newPath);
 
           setState(() {
@@ -117,7 +113,7 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
     setState(() {
       _imageFiles.remove(file);
     });
-    print("🗑️ Removed Image: ${_imageFiles.length} hhhhhhhh ${file.path}   ");
+    //print("🗑️ Removed Image: ${_imageFiles.length} hhhhhhhh ${file.path}   ");
   }
 
   String generateSecureSixDigitProductCode() {
@@ -131,47 +127,54 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
   }
 
   Future<void> _submitForm() async {
-    if (_formKey.currentState!.validate() &&
-        selectedCategoryName != null &&
-        _imageFiles.isNotEmpty) {
-      print("Form Submitted with:");
-      print("Category: $selectedCategoryName");
-      print("Category Code: $selectedCategoryCode");
-      print("Company: ${companyController.text}");
-      print("Country: ${countryController.text}");
-      print("Brand: ${brandController.text}");
-      print("Item Description: ${itemDescriptionController.text}");
-      print("Pack Type: ${packTypeController.text}");
-      print("Pack Size: ${packSizeController.text}");
-      print("Promotype: ${promotypeController.text}");
-      print("MRP: ${mrpController.text}");
-      print("Images Selected: ${_imageFiles.length}");
+    if (_formKey.currentState!.validate() && _imageFiles.isNotEmpty) {
+      if (selectedCategoryName == null) {
+        ShowAlert.showSnackBar(context, "Please select any Category.");
+        return;
+      }
+      if (selectedOption == null) {
+        ShowAlert.showSnackBar(context, "Please select 'FMCG' or 'SD'.");
+        return;
+      }
+      // print("Form Submitted with:");
+      // print("Category: $selectedCategoryName");
+      // print("Category Code: $selectedCategoryCode");
+      // print("Type: $selectedOption");
+      // print("Company: ${companyController.text}");
+      // print("Country: ${countryController.text}");
+      // print("Brand: ${brandController.text}");
+      // print("Item Description: ${itemDescriptionController.text}");
+      // print("Pack Type: ${packTypeController.text}");
+      // print("Pack Size: ${packSizeController.text}");
+      // print("Promotype: ${promotypeController.text}");
+      // print("MRP: ${mrpController.text}");
+      // print("Images Selected: ${_imageFiles.length}");
 
       if (_imageFiles.length == 4) {
         // Save image path in SharedPreferences
         final prefs = await SharedPreferences.getInstance();
-        List<String> savedPaths = prefs.getStringList('imagePaths') ??
-            []; // Get existing saved images
+        List<String> savedPaths = prefs.getStringList('imagePaths') ?? []; // Get existing saved images
         if (_imageFiles.isNotEmpty) {
           List<String> newPaths = _imageFiles.map((file) => file.path).toList();
           savedPaths = {...savedPaths, ...newPaths}.toList();
         }
         await prefs.setStringList('imagePaths', savedPaths); //
-        print("✅ Final saved images: $savedPaths");
+        //print("✅ Final saved images: $savedPaths");
 
         String productCode = generateSecureSixDigitProductCode();
 
         await dbManager.insertFMcgSdProductIntro(
           widget.dbPath,
           widget.auditorId,
+          selectedOption!,
           productCode,
           selectedCategoryName!,
-          companyController.text,
-          countryController.text,
-          brandController.text,
-          itemDescriptionController.text,
-          packTypeController.text,
-          packSizeController.text,
+          companyController.text.trim(),
+          countryController.text.trim(),
+          brandController.text.trim(),
+          itemDescriptionController.text.trim(),
+          packTypeController.text.trim(),
+          packSizeController.text.trim(),
           promotypeController.text,
           mrpController.text,
           _imageFiles[0].path,
@@ -191,7 +194,7 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
         await dbManager.insertFMcgSdProducts(
           widget.dbPath,
           widget.auditorId,
-          'FMCG',
+          selectedOption!,
           productCode,
           selectedCategoryCode!,
           selectedCategoryName!,
@@ -205,12 +208,40 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
           mrpController.text,
         );
 
-        ShowAlert.showSnackBar(context, 'Form submitted successfully!');
+        ShowAlert.showSnackBar(context, 'Product intro submitted successfully!');
+
+        setState(() {
+          selectedOption = null;
+          companyController.clear();
+          countryController.clear();
+          brandController.clear();
+          itemDescriptionController.clear();
+          packTypeController.clear();
+          packSizeController.clear();
+          promotypeController.clear();
+          mrpController.clear();
+          selectedCategoryCode = null;
+          selectedCategoryName = null;
+          _imageFiles.clear();
+        });
+
+        // OPTION 2: **Refresh the Page After Submission**
+        // Navigator.pushReplacement(
+        //   context,
+        //   MaterialPageRoute(builder: (context) => FmcgSdNewIntro(
+        //     dbPath: widget.dbPath,
+        //     storeCode: widget.storeCode,
+        //     auditorId: widget.auditorId,
+        //     option: widget.option,
+        //     shortCode: widget.shortCode,
+        //     storeName: widget.storeName,
+        //   )),
+        // );
       } else {
-        ShowAlert.showSnackBar(context, "You can only select up to 4 images.");
+        ShowAlert.showSnackBar(context, "You can upload 4 images.");
       }
     } else {
-      ShowAlert.showSnackBar(context, "Please fill all fields and add images");
+      ShowAlert.showSnackBar(context, "Please add images");
     }
   }
 
@@ -224,132 +255,193 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
         elevation: 0,
         title: const Text(
           'New Introduction',
-          style: TextStyle(color: Colors.black),
+          style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w500, fontFamily: 'Inter'),
         ),
         iconTheme: const IconThemeData(color: Colors.black),
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.only(
-                bottom: 100), // 👈 Ensure space for bottom navigation
-            children: [
-              const SizedBox(height: 16),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              // ✅ Replaced ListView with Column
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 16),
 
-              // const Text(
-              //   'Add 4 images:',
-              //   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              // ),
-              // const SizedBox(height: 8),
-
-              /// **Image Display with Remove Option**
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _imageFiles
-                    .map((file) => Stack(
-                          children: [
-                            Image.file(file, width: 100, height: 100),
-                            Positioned(
-                              right: 0,
-                              top: 0,
-                              child: GestureDetector(
-                                onTap: () => _removeImage(file),
-                                child: const Icon(Icons.remove_circle,
-                                    color: Colors.red),
+                /// **Dropdown for Category Selection**
+                DropdownButtonFormField<String>(
+                  value: selectedCategoryCode,
+                  decoration: _inputDecoration("Select Category"),
+                  items: categories
+                      .map((cat) => DropdownMenuItem<String>(
+                            value: cat['category_code'].toString(),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 0),
+                              child: Text(
+                                '${cat['category_name']}',
+                                style: const TextStyle(fontSize: 15),
                               ),
                             ),
-                          ],
-                        ))
-                    .toList(),
-              ),
+                          ))
+                      .toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      selectedCategoryCode = value;
+                      selectedCategoryName = categories.firstWhere(
+                        (cat) => cat['category_code'].toString() == value,
+                      )['category_name'];
+                    });
+                  },
+                  validator: (value) => value == null ? "Select a category" : null,
+                  dropdownColor: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                ),
 
-              const SizedBox(height: 10),
+                const SizedBox(height: 12),
 
-              Center(
-                child: ElevatedButton.icon(
-                  onPressed: _takePhoto,
-                  icon: const Icon(Icons.camera_alt, size: 24),
-                  label: const Text('Take Product 4 Photos'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 12, horizontal: 20),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.0),
+                DropdownButtonFormField<String>(
+                  value: selectedOption, // No default value
+                  decoration: InputDecoration(
+                    labelText: "Select Product Type",
+                    filled: true,
+                    fillColor: Colors.white70,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  items: ['FMCG', 'SD'].map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                  onChanged: (newValue) {
+                    setState(() {
+                      selectedOption = newValue;
+                    });
+                  },
+                  validator: (value) => value == null ? "Select a product type" : null, // Ensures a selection is made
+                  dropdownColor: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+
+                const SizedBox(height: 12),
+
+                /// **Input Fields**
+                _buildTextField("Company", companyController),
+                _buildTextField("Country", countryController),
+                _buildTextField("Brand", brandController),
+                _buildTextField("Item Description", itemDescriptionController),
+                _buildTextField("Pack Type", packTypeController),
+                _buildTextField("Pack Size", packSizeController),
+                _buildTextField("Promotype", promotypeController, isRequired: false),
+                _buildTextField("MRP", mrpController, isNumeric: true),
+
+                const SizedBox(height: 8),
+
+                /// **Image Display with Remove Option**
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _imageFiles
+                      .map((file) => Stack(
+                            children: [
+                              Image.file(file, width: 100, height: 100),
+                              Positioned(
+                                right: 0,
+                                top: 0,
+                                child: GestureDetector(
+                                  onTap: () => _removeImage(file),
+                                  child: const Icon(Icons.remove_circle, color: Colors.red),
+                                ),
+                              ),
+                            ],
+                          ))
+                      .toList(),
+                ),
+
+                const SizedBox(height: 12),
+
+                /// **Take Photo Button**
+                Center(
+                  child: ElevatedButton.icon(
+                    onPressed: _takePhoto,
+                    icon: const Icon(Icons.camera_alt, size: 24),
+                    label: const Text('Take Product 4 Photos'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                      ),
                     ),
                   ),
                 ),
-              ),
 
-              const SizedBox(height: 24),
+                const SizedBox(height: 12),
 
-              /// **Dropdown for Category Selection**
+                // Center(
+                //   child: OutlinedButton.icon(
+                //     onPressed: _takePhoto,
+                //     icon: const Icon(Icons.camera_alt, color: Color(0xFF006a5e)),
+                //     label: const Text(
+                //       'Take Product 4 Photos',
+                //       style: TextStyle(fontSize: 15, color: Color(0xFF006a5e)),
+                //     ),
+                //     style: OutlinedButton.styleFrom(
+                //       side: const BorderSide(color: Color(0xFF006a5e), width: 2),
+                //       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                //       shape: RoundedRectangleBorder(
+                //         borderRadius: BorderRadius.circular(12.0),
+                //       ),
+                //     ),
+                //   ),
+                // ),
 
-              DropdownButtonFormField<String>(
-                value:
-                    selectedCategoryCode, // This stores the selected category code
-                decoration: _inputDecoration("Select Category"),
-                items: categories
-                    .map((cat) => DropdownMenuItem<String>(
-                          value: cat['category_code']
-                              .toString(), // Store category_code
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 0),
-                            child: Text(
-                              '${cat['category_name']}',
-                              style: const TextStyle(fontSize: 15),
-                            ),
-                          ),
-                        ))
-                    .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedCategoryCode = value; // Save selected category code
-                    selectedCategoryName = categories.firstWhere(
-                      (cat) => cat['category_code'].toString() == value,
-                    )['category_name']; // Find and save category name
-                  });
-                },
-                validator: (value) =>
-                    value == null ? "Select a category" : null,
-                dropdownColor: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-              ),
+                const SizedBox(height: 24),
 
-              const SizedBox(height: 12),
-
-              /// **Input Fields**
-              _buildTextField("Company", companyController),
-              _buildTextField("Country", countryController),
-              _buildTextField("Brand", brandController),
-              _buildTextField("Item Description", itemDescriptionController),
-              _buildTextField("Pack Type", packTypeController),
-              _buildTextField("Pack Size", packSizeController),
-              _buildTextField("Promotype", promotypeController),
-              _buildTextField("MRP", mrpController, isNumeric: true),
-
-              const SizedBox(height: 16),
-
-              /// **Submit Button**
-              ElevatedButton(
-                onPressed: _submitForm,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF314CA3),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(50.0),
+                /// **Submit Button**
+                ElevatedButton(
+                  onPressed: _submitForm,
+                  style: ElevatedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: const Color(0xFF314CA3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(50),
+                    ),
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(double.infinity, 50),
+                  ),
+                  child: const Text(
+                    'Submit',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      height: 1.5,
+                    ),
                   ),
                 ),
-                child: const Text("Submit", style: TextStyle(fontSize: 15)),
-              ),
+                // Row(
+                //   mainAxisAlignment: MainAxisAlignment.end, // ✅ Aligns button to the right
+                //   children: [
+                //     ElevatedButton(
+                //       onPressed: _submitForm,
+                //       style: ElevatedButton.styleFrom(
+                //         backgroundColor: Colors.blue,
+                //         foregroundColor: Colors.white,
+                //       ),
+                //       child: const Text("Submit", style: TextStyle(fontSize: 15)),
+                //     ),
+                //   ],
+                // ),
 
-              const SizedBox(height: 16),
-            ],
+                const SizedBox(height: 200), // ✅ Extra space to prevent bottom overflow
+              ],
+            ),
           ),
         ),
       ),
@@ -389,10 +481,7 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
                   child: const Center(
                     child: Text(
                       'New Entry',
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),
                     ),
                   ),
                 ),
@@ -421,10 +510,7 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
                   child: const Center(
                     child: Text(
                       'SKU Audit',
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),
                     ),
                   ),
                 ),
@@ -436,16 +522,15 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
     );
   }
 
-  // Input Field Builder
-  Widget _buildTextField(String label, TextEditingController controller,
-      {bool isNumeric = false}) {
+  // Input Field Builder (Updated to allow optional validation)
+  Widget _buildTextField(String label, TextEditingController controller, {bool isNumeric = false, bool isRequired = true}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextFormField(
         controller: controller,
         keyboardType: isNumeric ? TextInputType.number : TextInputType.text,
         decoration: _inputDecoration(label),
-        validator: (value) => value!.isEmpty ? "$label is required" : null,
+        validator: isRequired ? (value) => value!.isEmpty ? "$label is required" : null : null, // No validation if isRequired is false
       ),
     );
   }

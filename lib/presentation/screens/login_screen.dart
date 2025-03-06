@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http; // Add http package
 import 'package:store_audit/presentation/screens/home_screen.dart';
+import 'package:store_audit/service/file_upload_download.dart';
 import '../../db/database_manager.dart';
 import '../../utility/assets_path.dart';
 import '../../utility/show_progress.dart';
@@ -16,6 +17,7 @@ class LoginWidget extends StatefulWidget {
 class _LoginWidgetState extends State<LoginWidget> {
   final TextEditingController _auditorIdController = TextEditingController();
   final DatabaseManager dbManager = DatabaseManager();
+  final FileUploadDownload fileUploadDownload = FileUploadDownload();
   List<Map<String, dynamic>>? fmcgStoreList;
   String _dbPath = '';
   String _auditorId = '';
@@ -30,8 +32,7 @@ class _LoginWidgetState extends State<LoginWidget> {
   // Function to make an API call
   Future<void> _fetchDatabasePath(String auditorId) async {
     try {
-      final url = Uri.parse(
-          'https://mcdphp8.bol-online.com/luminaries-app/api/v1/syncdb?code=$auditorId');
+      final url = Uri.parse('https://mcdphp8.bol-online.com/luminaries-app/api/v1/download-db?code=$auditorId');
       final response = await http.post(url);
 
       final responseData = json.decode(response.body);
@@ -60,18 +61,17 @@ class _LoginWidgetState extends State<LoginWidget> {
         const SnackBar(content: Text('Please, Connect the Internet')),
       );
     }
-    return null; // Return null if an error occurs
+    return; // Return null if an error occurs
   }
 
   Future<void> _checkLogin(String auditorId) async {
     try {
-      final url = Uri.parse(
-          'https://mcdphp8.bol-online.com/luminaries-app/api/v1/login?code=$auditorId');
+      final url = Uri.parse('https://mcdphp8.bol-online.com/luminaries-app/api/v1/login?code=$auditorId');
       final response = await http.post(url);
 
       final responseData = json.decode(response.body);
       if (responseData['status'] == 1) {
-        print('Loginn okkk');
+        // print('Loginn okkk');
         // Return the database path from the response
         await _fetchDatabasePath(auditorId);
       } else {
@@ -100,7 +100,11 @@ class _LoginWidgetState extends State<LoginWidget> {
   Future<void> _navigateToNextScreen(BuildContext context) async {
     fmcgStoreList = await dbManager.loadFMcgSdStores(_dbPath, _auditorId);
     ShowProgress.hideProgressDialog(context);
-    Get.off(() => HomeScreen(fmcgStoreList: fmcgStoreList ?? []));
+    Get.off(() => HomeScreen(
+          fmcgStoreList: fmcgStoreList ?? [],
+          dbPath: _dbPath,
+          auditorId: _auditorId,
+        ));
   }
 
   @override
@@ -178,6 +182,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                   final dbPath = await dbManager.downloadAndSaveUserDatabase();
                   _dbPath = dbPath;
                   _auditorId = auditorId;
+                  await fileUploadDownload.getSyncStatus(context, _dbPath, _auditorId);
                   _navigateToNextScreen(context);
                 } else {
                   ShowProgress.hideProgressDialog(context);

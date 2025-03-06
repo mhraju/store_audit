@@ -9,15 +9,13 @@ class FMCGSDStores extends StatefulWidget {
   final String dbPath;
   final String auditorId;
 
-  const FMCGSDStores(
-      {super.key, required this.dbPath, required this.auditorId});
+  const FMCGSDStores({super.key, required this.dbPath, required this.auditorId});
 
   @override
   State<FMCGSDStores> createState() => _FMCGSDStoresState();
 }
 
-class _FMCGSDStoresState extends State<FMCGSDStores>
-    with SingleTickerProviderStateMixin {
+class _FMCGSDStoresState extends State<FMCGSDStores> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   List<Map<String, dynamic>> _data = [];
   final DatabaseManager dbManager = DatabaseManager();
@@ -70,8 +68,7 @@ class _FMCGSDStoresState extends State<FMCGSDStores>
         _filteredData = _data;
       } else {
         _filteredData = _data.where((item) {
-          return item['name'].toLowerCase().contains(query.toLowerCase()) ||
-              item['code'].toString().contains(query);
+          return item['name'].toLowerCase().contains(query.toLowerCase()) || item['code'].toString().contains(query);
         }).toList();
       }
     });
@@ -99,7 +96,7 @@ class _FMCGSDStoresState extends State<FMCGSDStores>
         elevation: 0,
         title: const Text(
           'FMCG SD Stores',
-          style: TextStyle(color: Colors.black),
+          style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w500, fontFamily: 'Inter'),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
@@ -109,9 +106,7 @@ class _FMCGSDStoresState extends State<FMCGSDStores>
         ),
       ),
       body: isLoading
-          ? const Center(
-              child:
-                  CircularProgressIndicator()) // Show loading indicator only initially
+          ? const Center(child: CircularProgressIndicator()) // Show loading indicator only initially
           : _buildContent(),
     );
   }
@@ -151,10 +146,8 @@ class _FMCGSDStoresState extends State<FMCGSDStores>
               onTap: (_) => setState(() {}),
               tabs: [
                 _buildTab('All', Icons.list_alt, _filteredData.length),
-                _buildTab('Done', Icons.check_circle, _getCount(1),
-                    color: Colors.green),
-                _buildTab('Pending', Icons.pending_actions, _getCount(0),
-                    color: Colors.red),
+                _buildTab('Done', Icons.check_circle, _getCount(1), color: Colors.green),
+                _buildTab('Pending', Icons.pending_actions, _getCount(0), color: Colors.red),
               ],
             ),
           ),
@@ -173,8 +166,7 @@ class _FMCGSDStoresState extends State<FMCGSDStores>
     );
   }
 
-  Widget _buildTab(String label, IconData icon, int count,
-      {Color color = Colors.black}) {
+  Widget _buildTab(String label, IconData icon, int count, {Color color = Colors.black}) {
     return Tab(
       child: Container(
         height: 80, // Set desired tab height here
@@ -190,8 +182,7 @@ class _FMCGSDStoresState extends State<FMCGSDStores>
                 Text(
                   label,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -226,8 +217,7 @@ class _FMCGSDStoresState extends State<FMCGSDStores>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Store Code: ${item['code']}'),
-                Text(DateFormat('dd MMM, yyyy')
-                    .format(DateTime.parse(item['date']))),
+                Text(DateFormat('dd MMM, yyyy').format(DateTime.parse(item['date']))),
               ],
             ),
             trailing: Text(
@@ -267,8 +257,7 @@ class _FMCGSDStoresState extends State<FMCGSDStores>
               if (item['status_short_name'] != 'RA') {
                 _showOptionsDialog(context, item);
               } else {
-                ShowAlert.showSnackBar(
-                    context, 'This store has already audited for this month');
+                ShowAlert.showSnackBar(context, 'This store has already audited for this month');
               }
             },
           ),
@@ -286,8 +275,7 @@ class _FMCGSDStoresState extends State<FMCGSDStores>
       ),
       child: Text(
         count.toString(),
-        style: const TextStyle(
-            color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -309,8 +297,7 @@ class _FMCGSDStoresState extends State<FMCGSDStores>
               const Divider(),
               _buildOption(context, 'Permanent Closed (PC)', 'PC', item),
               const Divider(),
-              _buildOption(
-                  context, 'Consider as New Store (CANS)', 'CANS', item),
+              _buildOption(context, 'Consider as New Store (CANS)', 'CANS', item),
             ],
           ),
         );
@@ -318,8 +305,7 @@ class _FMCGSDStoresState extends State<FMCGSDStores>
     );
   }
 
-  Widget _buildOption(
-      BuildContext context, String option, String shortCode, item) {
+  Widget _buildOption(BuildContext context, String option, String shortCode, item) {
     return ListTile(
       title: Text(option),
       onTap: () {
@@ -328,12 +314,7 @@ class _FMCGSDStoresState extends State<FMCGSDStores>
           context,
           MaterialPageRoute(
               builder: (context) => FmcgSdStoreDetails(
-                  storeList: _data,
-                  storeData: item,
-                  dbPath: _dbPath,
-                  auditorId: _auditorId,
-                  option: option,
-                  shortCode: shortCode)),
+                  storeList: _data, storeData: item, dbPath: _dbPath, auditorId: _auditorId, option: option, shortCode: shortCode)),
         ).then((value) {
           _refreshData(); // Call method to refresh database data
         });

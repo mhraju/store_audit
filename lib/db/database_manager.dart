@@ -44,8 +44,7 @@ class DatabaseManager {
         print('Database downloaded and saved at $dbPath');
         return dbPath;
       } else {
-        throw Exception(
-            'Failed to download database. HTTP status: ${response.statusCode}');
+        throw Exception('Failed to download database. HTTP status: ${response.statusCode}');
       }
     } catch (e) {
       throw Exception('Error downloading database: $e');
@@ -65,8 +64,7 @@ class DatabaseManager {
   }
 
   // Call this func after Log in
-  Future<List<Map<String, dynamic>>> loadFMcgSdStores(
-      String dbPath, String auditorId) async {
+  Future<List<Map<String, dynamic>>> loadFMcgSdStores(String dbPath, String auditorId) async {
     try {
       final db = await loadDatabase(dbPath);
       final storesWithSchedules = await db.rawQuery('''
@@ -168,12 +166,10 @@ class DatabaseManager {
           'updated_by': auditorId,
           'updated_at': DateTime.now().toIso8601String(),
         },
-        where:
-            'store_code COLLATE NOCASE = ?', // Ensures case-insensitive matching
+        where: 'store_code COLLATE NOCASE = ?', // Ensures case-insensitive matching
         whereArgs: [storeCode],
       );
-      print(
-          'Store Schedules table updated successfully for store_code: $storeCode');
+      print('Store Schedules table updated successfully for store_code: $storeCode');
 
       // Close the database
       await db.close();
@@ -185,8 +181,7 @@ class DatabaseManager {
   }
 
   // Call this func to get Store SKU List
-  Future<List<Map<String, dynamic>>> loadFMcgSdStoreSkuList(
-      String dbPath, String storeCode) async {
+  Future<List<Map<String, dynamic>>> loadFMcgSdStoreSkuList(String dbPath, String storeCode) async {
     try {
       print('storecode: $storeCode');
       final db = await loadDatabase(dbPath);
@@ -267,8 +262,7 @@ class DatabaseManager {
       // Check if the record exists
       List<Map<String, dynamic>> existingRows = await db.query(
         'fmcg_store_updates',
-        where:
-            'store_code = ? AND product_code = ? AND substr(date, 1, 7) = strftime("%Y-%m", "now")',
+        where: 'store_code = ? AND product_code = ? AND substr(date, 1, 7) = strftime("%Y-%m", "now")',
         whereArgs: [storeCode, productCode],
       );
 
@@ -279,10 +273,7 @@ class DatabaseManager {
         await db.update(
           'fmcg_store_updates',
           {
-            'date': DateTime.now()
-                .toLocal()
-                .toIso8601String()
-                .substring(0, 10), // Ensures YYYY-MM-DD format
+            'date': DateTime.now().toLocal().toIso8601String().substring(0, 10), // Ensures YYYY-MM-DD format
             'panel': panel,
             'openstock': openStock,
             'purchase': purchase,
@@ -293,9 +284,7 @@ class DatabaseManager {
             'sale_last_month': avgSaleLastMonth,
             'sale_last_to_last_month': avgSaleLastToLastMonth,
             'updated_by': auditorId,
-            'updated_at': DateTime.now()
-                .toLocal()
-                .toIso8601String(), // Ensures timezone consistency
+            'updated_at': DateTime.now().toLocal().toIso8601String(), // Ensures timezone consistency
           },
           where: '''
     store_code = ? 
@@ -339,12 +328,10 @@ class DatabaseManager {
     }
   }
 
-  Future<List<Map<String, dynamic>>> loadFMcgSdProductsAll(
-      String dbPath, String auditorId) async {
+  Future<List<Map<String, dynamic>>> loadFMcgSdProductsAll(String dbPath, String auditorId) async {
     try {
       final db = await loadDatabase(dbPath);
-      final fmcgSdProductsAll = await db
-          .rawQuery('SELECT * FROM products ORDER BY category_name, brand;');
+      final fmcgSdProductsAll = await db.rawQuery('SELECT * FROM products ORDER BY category_name, brand;');
       await db.close();
       return fmcgSdProductsAll;
     } catch (e) {
@@ -353,8 +340,7 @@ class DatabaseManager {
     }
   }
 
-  Future<List<Map<String, dynamic>>> loadFmcgSdProductCategories(
-      String dbPath) async {
+  Future<List<Map<String, dynamic>>> loadFmcgSdProductCategories(String dbPath) async {
     try {
       final db = await loadDatabase(dbPath);
       final fmcgSdProductCategories = await db.rawQuery('''
@@ -390,8 +376,7 @@ class DatabaseManager {
       );
 
       if (existingRows.isNotEmpty) {
-        ShowAlert.showSnackBar(
-            context, 'This item is already present to this store SKU list');
+        ShowAlert.showSnackBar(context, 'This item is already present to this store SKU list');
       } else {
         // Update the store details
         await db.insert(
@@ -403,8 +388,7 @@ class DatabaseManager {
             'created_at': DateTime.now().toIso8601String(),
           },
         );
-        ShowAlert.showSnackBar(
-            context, 'New SKU inserted and updated successfully');
+        ShowAlert.showSnackBar(context, 'New SKU inserted and updated successfully');
         print('New entry is inserted successfully for store_code: $storeCode');
       }
 
@@ -421,6 +405,7 @@ class DatabaseManager {
   Future<void> insertFMcgSdProductIntro(
     String dbPath,
     String auditorId,
+    String index,
     String productCode,
     String category,
     String company,
@@ -444,6 +429,7 @@ class DatabaseManager {
         'product_introductions',
         {
           'employee_code': auditorId,
+          'index': index,
           'update_code': productCode,
           'category': category,
           'company': company,
@@ -509,7 +495,7 @@ class DatabaseManager {
           'pack_type': packType,
           'pack_size': packSize,
           'promotype': promoType,
-          'mrp': mrp,
+          'price': mrp,
           'update_status': 1,
           'created_by': auditorId,
           'created_at': DateTime.now().toIso8601String(),

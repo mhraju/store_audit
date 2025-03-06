@@ -18,6 +18,7 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen> {
   String _auditorId = '';
   String _dbPath = '';
+  String _downloadStatus = '';
   String version = '';
   final DatabaseManager dbManager = DatabaseManager();
   List<Map<String, dynamic>>? fmcgStoreList;
@@ -56,7 +57,11 @@ class _SplashScreenState extends State<SplashScreen> {
       Get.to(() => LoginWidget());
     } else {
       fmcgStoreList = await dbManager.loadFMcgSdStores(_dbPath, _auditorId);
-      Get.off(() => HomeScreen(fmcgStoreList: fmcgStoreList ?? []));
+      Get.off(() => HomeScreen(
+            fmcgStoreList: fmcgStoreList ?? [],
+            dbPath: _dbPath,
+            auditorId: _auditorId,
+          ));
     }
   }
 
@@ -79,10 +84,7 @@ class _SplashScreenState extends State<SplashScreen> {
               height: 16,
             ),
             // Show the version number dynamically when it is fetched
-            version.isNotEmpty
-                ? Text("Version: $version")
-                : const SizedBox
-                    .shrink(), // Don't show text if version is not fetched
+            version.isNotEmpty ? Text("Version: $version") : const SizedBox.shrink(), // Don't show text if version is not fetched
             const SizedBox(
               height: 36,
             ),

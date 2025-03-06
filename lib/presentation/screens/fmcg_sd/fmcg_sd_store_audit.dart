@@ -16,6 +16,7 @@ class FmcgSdStoreAudit extends StatefulWidget {
   final String auditorId;
   final String option;
   final String shortCode;
+  final String storeName;
   const FmcgSdStoreAudit({
     super.key,
     required this.dbPath,
@@ -23,6 +24,7 @@ class FmcgSdStoreAudit extends StatefulWidget {
     required this.auditorId,
     required this.option,
     required this.shortCode,
+    required this.storeName,
   });
 
   @override
@@ -51,8 +53,7 @@ class _FmcgSdStoreAuditState extends State<FmcgSdStoreAudit> {
       return;
     }
     if (_remarksController.text.isEmpty) {
-      ShowAlert.showSnackBar(
-          context, 'Please enter remarks before submitting.');
+      ShowAlert.showSnackBar(context, 'Please enter remarks before submitting.');
       return;
     }
 
@@ -119,18 +120,14 @@ class _FmcgSdStoreAuditState extends State<FmcgSdStoreAudit> {
       }
 
       // Resize the image to 600x600 before saving
-      final img.Image? originalImage =
-          img.decodeImage(await File(photo.path).readAsBytes());
+      final img.Image? originalImage = img.decodeImage(await File(photo.path).readAsBytes());
       if (originalImage != null) {
-        final img.Image resizedImage =
-            img.copyResize(originalImage, width: 500, height: 500);
-        final String timestamp =
-            DateTime.now().millisecondsSinceEpoch.toString();
+        final img.Image resizedImage = img.copyResize(originalImage, width: 500, height: 500);
+        final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
         final String newFileName = 'selfie_${widget.auditorId}_$timestamp.jpg';
 
         final String newPath = '$customPath/$newFileName';
-        final File resizedFile = File('${photo.path}_resized.jpg')
-          ..writeAsBytesSync(img.encodeJpg(resizedImage));
+        final File resizedFile = File('${photo.path}_resized.jpg')..writeAsBytesSync(img.encodeJpg(resizedImage));
         final File newImage = await resizedFile.copy(newPath);
 
         final prefs = await SharedPreferences.getInstance();
@@ -160,19 +157,14 @@ class _FmcgSdStoreAuditState extends State<FmcgSdStoreAudit> {
         final customPath = directory.path;
 
         // Resize image
-        final img.Image? originalImage =
-            img.decodeImage(await File(pickedFile.path).readAsBytes());
+        final img.Image? originalImage = img.decodeImage(await File(pickedFile.path).readAsBytes());
         if (originalImage != null) {
-          final img.Image resizedImage =
-              img.copyResize(originalImage, width: 500, height: 500);
-          final String timestamp =
-              DateTime.now().millisecondsSinceEpoch.toString();
-          final String newPath =
-              '$customPath/cash_memo_${widget.storeCode}_$timestamp.jpg';
+          final img.Image resizedImage = img.copyResize(originalImage, width: 500, height: 500);
+          final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+          final String newPath = '$customPath/cash_memo_${widget.storeCode}_$timestamp.jpg';
 
           // Save resized image
-          final File resizedFile = File('${pickedFile.path}_resized.jpg')
-            ..writeAsBytesSync(img.encodeJpg(resizedImage));
+          final File resizedFile = File('${pickedFile.path}_resized.jpg')..writeAsBytesSync(img.encodeJpg(resizedImage));
           final File newImage = await resizedFile.copy(newPath);
 
           // Save image path in SharedPreferences
@@ -215,7 +207,10 @@ class _FmcgSdStoreAuditState extends State<FmcgSdStoreAudit> {
       appBar: AppBar(
         backgroundColor: AppColors.appBarColor,
         elevation: 0,
-        title: const Text('Store Audit'),
+        title: Text(
+          'Store Audit (${widget.storeName})',
+          style: const TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w500, fontFamily: 'Inter'),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
@@ -246,13 +241,10 @@ class _FmcgSdStoreAuditState extends State<FmcgSdStoreAudit> {
                             child: _selfieImage == null
                                 ? const Center(
                                     child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
+                                      mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
-                                        Icon(Icons.camera_alt,
-                                            size: 50, color: Colors.grey),
-                                        Text(
-                                            'Add a selfie near the store location'),
+                                        Icon(Icons.camera_alt, size: 50, color: Colors.grey),
+                                        Text('Add a selfie near the store location'),
                                       ],
                                     ),
                                   )
@@ -307,8 +299,7 @@ class _FmcgSdStoreAuditState extends State<FmcgSdStoreAudit> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.blue,
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 12, horizontal: 20),
+                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12.0),
                               ),
@@ -316,7 +307,7 @@ class _FmcgSdStoreAuditState extends State<FmcgSdStoreAudit> {
                           ),
                         ),
 
-                        const SizedBox(height: 16.0),
+                        const SizedBox(height: 24.0),
 
                         /// **Submit & Save Images**
                         ElevatedButton(
@@ -335,7 +326,7 @@ class _FmcgSdStoreAuditState extends State<FmcgSdStoreAudit> {
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 16,
-                              fontWeight: FontWeight.normal,
+                              fontWeight: FontWeight.w600,
                               height: 1.5,
                             ),
                           ),

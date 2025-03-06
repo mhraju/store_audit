@@ -32,9 +32,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
   List<Map<String, dynamic>> skuData = [];
   List<Map<String, dynamic>> filteredSkuData = [];
   bool isLoading = true;
-  TextEditingController searchController = TextEditingController();
-  //Map<String, bool> editStatus = {}; // Track edited status
-  //Map<String, Map<String, dynamic>> editedValues = {}; // Store field updates
+  TextEditingController searchController = TextEditingController(); // Store field updates
   final DatabaseManager dbManager = DatabaseManager();
   Map<String, Color> skuItemColors = {}; // ✅ Store colors for each SKU item
 
@@ -59,23 +57,23 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
 
     await Future.delayed(const Duration(seconds: 1));
 
-    final fetchedData =
-        await dbManager.loadFMcgSdStoreSkuList(widget.dbPath, widget.storeCode);
+    final fetchedData = await dbManager.loadFMcgSdStoreSkuList(widget.dbPath, widget.storeCode);
 
     final prefs = await SharedPreferences.getInstance();
     List<String> editedItems = prefs.getStringList('editedItems') ?? [];
-
+    //print('color: checkList $editedItems');
     // ✅ Reload stored colors for each SKU item explicitly from editedItems
     Map<String, Color> restoredColors = {};
     for (var item in fetchedData) {
       String itemName = item['item_description'].trim();
-
+      //print('color: check $itemName');
       if (editedItems.contains(itemName)) {
         int? colorValue = prefs.getInt("color_${widget.storeCode}_$itemName");
-        restoredColors[itemName] =
-            (colorValue != null) ? Color(colorValue) : Colors.grey.shade300;
+        restoredColors[itemName] = (colorValue != null) ? Color(colorValue) : Colors.grey.shade300;
+        //print('color: ok ${restoredColors[itemName]}');
       } else {
         restoredColors[itemName] = Colors.grey.shade300;
+        //print('color: Not ok ${restoredColors[itemName]}');
       }
     }
 
@@ -115,7 +113,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
     // Extract values safely with default values
     String itemName = skuItem['item_description'] ?? 'Unknown Item';
     const SizedBox(height: 24);
-    bool _isProceed = false;
+    bool isProceed = false;
 
     // Helper function to prevent showing "0" and return an empty string instead
     String getTextFieldValue(dynamic value) {
@@ -126,47 +124,26 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
     }
 
 // Initialize controllers with improved logic
-    TextEditingController purchaseController =
-        TextEditingController(text: getTextFieldValue(skuItem['purchase']));
-    TextEditingController closingStockController =
-        TextEditingController(text: getTextFieldValue(skuItem['closestock']));
-    TextEditingController wholesaleController =
-        TextEditingController(text: getTextFieldValue(skuItem['wholesale']));
-    // TextEditingController mrpController = TextEditingController(
-    //   text: getTextFieldValue((skuItem['mrp'] != null &&
-    //           skuItem['mrp'].toString().trim().isNotEmpty)
-    //       ? skuItem['mrp']
-    //       : skuItem['prev_mrp']),
-    // );
-    TextEditingController mrpController =
-        TextEditingController(text: getTextFieldValue(skuItem['mrp']));
-    TextEditingController avgSaleLastMonthController = TextEditingController(
-        text: getTextFieldValue(skuItem['sale_last_month']));
-    TextEditingController avgSaleLastToLastMonthController =
-        TextEditingController(
-            text: getTextFieldValue(skuItem['sale_last_to_last_month']));
+    TextEditingController purchaseController = TextEditingController(text: getTextFieldValue(skuItem['purchase']));
+    TextEditingController closingStockController = TextEditingController(text: getTextFieldValue(skuItem['closestock']));
+    TextEditingController wholesaleController = TextEditingController(text: getTextFieldValue(skuItem['wholesale']));
+    TextEditingController mrpController = TextEditingController(text: getTextFieldValue(skuItem['mrp']));
+    TextEditingController avgSaleLastMonthController = TextEditingController(text: getTextFieldValue(skuItem['sale_last_month']));
+    TextEditingController avgSaleLastToLastMonthController = TextEditingController(text: getTextFieldValue(skuItem['sale_last_to_last_month']));
 
-    int saleValue = int.tryParse(skuItem['sale']?.toString() ?? '0') ??
-        0; // Initialize properly
+    int saleValue = int.tryParse(skuItem['sale']?.toString() ?? '0') ?? 0; // Initialize properly
 
     void updateSaleValue() {
-      int openingStock = int.tryParse((skuItem['openstock'] != null &&
-                  skuItem['openstock'].toString().trim().isNotEmpty)
+      int openingStock = int.tryParse((skuItem['openstock'] != null && skuItem['openstock'].toString().trim().isNotEmpty)
               ? skuItem['openstock'].toString()
               : skuItem['prev_closestock'].toString()) ??
           0;
 
-      int purchase =
-          double.tryParse(purchaseController.text.trim())?.round() ?? 0;
+      int purchase = double.tryParse(purchaseController.text.trim())?.round() ?? 0;
 
       if (closingStockController.text.trim().isNotEmpty) {
-        print("Closing stock has data: ${closingStockController.text.trim()}");
-
-        int closingStock =
-            double.tryParse(closingStockController.text.trim())?.round() ?? 0;
-
+        int closingStock = double.tryParse(closingStockController.text.trim())?.round() ?? 0;
         int calculatedSale = (openingStock + purchase) - closingStock;
-        print('calculatedSale: $calculatedSale'); // Debugging
 
         if (calculatedSale < 0) {
           // ✅ Reset Closing Stock (CS) to 0
@@ -175,62 +152,18 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
             saleValue = 0; // Reset Sale value
           });
 
-          // ✅ Show a beautiful AlertDialog
-          showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                title: const Row(
-                  children: [
-                    Icon(Icons.warning_amber_rounded,
-                        color: Colors.red, size: 30),
-                    SizedBox(width: 10),
-                    Text(
-                      "Invalid Input",
-                      style: TextStyle(
-                          color: Colors.red, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-                content: const Text(
-                  "Sale cannot be negative!\nClosing Stock (CS) has been reset to 0.\n\nPlease check your inputs.",
-                  style: TextStyle(fontSize: 16),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(context); // Close the dialog
-                    },
-                    child:
-                        const Text("OK", style: TextStyle(color: Colors.blue)),
-                  ),
-                ],
-              );
-            },
-          );
+          ShowAlert.showAlertDialog(
+              context, "Invalid Input", "Sale cannot be negative!\nClosing Stock (CS) has been reset to 0.\n\nPlease check your inputs.");
         } else {
           // ✅ Update sale value correctly
           setState(() {
             saleValue = calculatedSale;
-            //editStatus[itemName] = true;
-            // editedValues[itemName] = {
-            //   'purchase': purchase.toString(),
-            //   'closestock': closingStockController.text, // Save CS value
-            //   'sale': saleValue.toString(),
-            // };
           });
         }
       } else {
         print("Closing stock is empty on Sale");
         setState(() {
           saleValue = openingStock + purchase;
-          // editedValues[itemName] = {
-          //   'purchase': purchase.toString(),
-          //   'sale': saleValue.toString(),
-          // };
         });
       }
     }
@@ -267,57 +200,28 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
 
                     _buildNonEditableField(
                       'Opening Stock (OS)',
-                      (skuItem['openstock'] != null &&
-                                  skuItem['openstock']
-                                      .toString()
-                                      .trim()
-                                      .isNotEmpty
+                      (skuItem['openstock'] != null && skuItem['openstock'].toString().trim().isNotEmpty
                               ? skuItem['openstock']
                               : skuItem['prev_closestock'])
                           .toString(),
                     ),
 
                     // Editable Fields
-                    _buildEditableField(
-                        'Purchase',
-                        skuItem['purchase']?.toString() ?? '',
-                        itemName,
-                        skuItem,
-                        controller: purchaseController,
-                        onChanged: updateSaleValue),
-                    _buildEditableField(
-                        'Closing Stock (CS)',
-                        skuItem['closestock']?.toString() ?? '',
-                        itemName,
-                        skuItem,
-                        controller: closingStockController,
-                        onChanged: updateSaleValue),
+                    _buildEditableField('Purchase', skuItem['purchase']?.toString() ?? '', itemName, skuItem,
+                        controller: purchaseController, onChanged: updateSaleValue),
+                    _buildEditableField('Closing Stock (CS)', skuItem['closestock']?.toString() ?? '', itemName, skuItem,
+                        controller: closingStockController, onChanged: updateSaleValue),
 
                     // Sale - Non Editable
                     _buildNonEditableField('Sale', saleValue.toString()),
 
-                    _buildEditableField(
-                        'Wholesale (WS)',
-                        skuItem['wholesale']?.toString() ?? '',
-                        itemName,
-                        skuItem,
-                        controller:
-                            wholesaleController // ✅ Pass the roundUp parameter
+                    _buildEditableField('Wholesale (WS)', skuItem['wholesale']?.toString() ?? '', itemName, skuItem,
+                        controller: wholesaleController // ✅ Pass the roundUp parameter
                         ),
-                    _buildEditableField('MRP', skuItem['mrp']?.toString() ?? '',
-                        itemName, skuItem,
-                        controller: mrpController),
-                    _buildEditableField(
-                        'Avg Sale Last Month',
-                        skuItem['sale_last_month']?.toString() ?? '',
-                        itemName,
-                        skuItem,
+                    _buildEditableField('MRP', skuItem['mrp']?.toString() ?? '', itemName, skuItem, controller: mrpController),
+                    _buildEditableField('Avg Sale Last Month', skuItem['sale_last_month']?.toString() ?? '', itemName, skuItem,
                         controller: avgSaleLastMonthController),
-                    _buildEditableField(
-                        'Avg Sale Last to Last Month',
-                        skuItem['sale_last_to_last_month']?.toString() ?? '',
-                        itemName,
-                        skuItem,
+                    _buildEditableField('Avg Sale Last to Last Month', skuItem['sale_last_to_last_month']?.toString() ?? '', itemName, skuItem,
                         controller: avgSaleLastToLastMonthController),
 
                     const SizedBox(height: 16),
@@ -328,31 +232,19 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                         onPressed: () async {
                           if (closingStockController.text.trim().isNotEmpty) {
                             print("Closing stock contains data.");
-                            int closingStock = double.tryParse(
-                                        closingStockController.text.trim())
-                                    ?.round() ??
-                                0;
+                            int closingStock = double.tryParse(closingStockController.text.trim())?.round() ?? 0;
 
                             if (closingStock == 0) {
                               mrpController.text = '0';
                             } else {
-                              double? newMrp =
-                                  double.tryParse(mrpController.text.trim());
+                              double? newMrp = double.tryParse(mrpController.text.trim());
 
-                              double lastMrpFromDb = double.tryParse(
-                                      (skuItem['mrp']?.toString().isNotEmpty ==
-                                              true)
-                                          ? skuItem['mrp'].toString()
-                                          : (skuItem['prev_mrp']
-                                                      ?.toString()
-                                                      .isNotEmpty ==
-                                                  true
-                                              ? skuItem['prev_mrp'].toString()
-                                              : '0')) ??
+                              double lastMrpFromDb = double.tryParse((skuItem['mrp']?.toString().isNotEmpty == true)
+                                      ? skuItem['mrp'].toString()
+                                      : (skuItem['prev_mrp']?.toString().isNotEmpty == true ? skuItem['prev_mrp'].toString() : '0')) ??
                                   0;
 
-                              print(
-                                  '$newMrp _ $lastMrpFromDb _ ${skuItem['prev_mrp']}');
+                              print('$newMrp _ $lastMrpFromDb _ ${skuItem['prev_mrp']}');
 
                               if (newMrp == null || newMrp < 0) {
                                 mrpController.text = lastMrpFromDb.toString();
@@ -360,12 +252,9 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                               }
 
                               if (lastMrpFromDb != 0.0) {
-                                double minAllowed = lastMrpFromDb * 0.8,
-                                    maxAllowed = lastMrpFromDb * 1.2;
+                                double minAllowed = lastMrpFromDb * 0.8, maxAllowed = lastMrpFromDb * 1.2;
 
-                                if ((newMrp < minAllowed ||
-                                        newMrp > maxAllowed) &&
-                                    !_isProceed) {
+                                if ((newMrp < minAllowed || newMrp > maxAllowed) && !isProceed) {
                                   _showConfirmationDialog(
                                           "Invalid MRP",
                                           "The new MRP ($newMrp) is outside the allowed 20% deviation range of previous MRP ($lastMrpFromDb).\n\n"
@@ -376,15 +265,14 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                                       // ✅ User chose "Continue", proceed with the update
                                       //_continueUpdateProcess();
                                       setState(() {
-                                        _isProceed = true;
+                                        isProceed = true;
                                         mrpController.text = newMrp.toString();
                                       });
                                     } else {
                                       // ✅ User chose "OK", reset MRP
                                       setState(() {
-                                        _isProceed = true;
-                                        mrpController.text =
-                                            lastMrpFromDb.toString();
+                                        isProceed = true;
+                                        mrpController.text = lastMrpFromDb.toString();
                                       });
                                     }
                                   });
@@ -394,91 +282,22 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                             }
 
                             // Ensure MRP is provided if closing stock > 0
-                            if (closingStock > 0 &&
-                                (double.tryParse(mrpController.text.trim()) ??
-                                        0) ==
-                                    0) {
-                              _showAlertDialog("MRP Required",
-                                  "You must enter an MRP value when Closing Stock is greater than 0.");
+                            if (closingStock > 0 && (double.tryParse(mrpController.text.trim()) ?? 0) == 0) {
+                              ShowAlert.showAlertDialog(context, "MRP Required", "You must enter an MRP value when Closing Stock is greater than 0.");
                             }
 
-                            // ✅ Code continues immediately unless an alert is shown
-                            print("Continuing update after alert...");
-
-                            int wholesale =
-                                double.tryParse(wholesaleController.text.trim())
-                                        ?.round() ??
-                                    0;
+                            // wholesale check
+                            int wholesale = double.tryParse(wholesaleController.text.trim())?.round() ?? 0;
 
                             print('sal: $saleValue _ $wholesale');
                             if (wholesale > saleValue) {
                               // ✅ Show an alert if Wholesale is greater than Sale
-                              showDialog(
-                                context: context,
-                                builder: (BuildContext context) {
-                                  return AlertDialog(
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(15),
-                                    ),
-                                    title: const Row(
-                                      children: [
-                                        Icon(Icons.warning_amber_rounded,
-                                            color: Colors.red, size: 30),
-                                        SizedBox(width: 10),
-                                        Text(
-                                          "Invalid Input",
-                                          style: TextStyle(
-                                              color: Colors.red,
-                                              fontWeight: FontWeight.bold),
-                                        ),
-                                      ],
-                                    ),
-                                    content: const Text(
-                                      "Wholesale cannot be more than Total Sales!\nPlease enter a valid value.",
-                                      style: TextStyle(fontSize: 16),
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () {
-                                          Navigator.pop(
-                                              context); // Close the dialog
-                                        },
-                                        child: const Text("OK",
-                                            style:
-                                                TextStyle(color: Colors.blue)),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              );
+                              ShowAlert.showAlertDialog(
+                                  context, "Invalid Input", "Wholesale cannot be more than Total Sales!\nPlease enter a valid value.");
                               return; // ✅ Stop execution if validation fails
                             }
-
-                            // setState(() {
-                            //   //editStatus[itemName] = true;
-                            //   editedValues[itemName] = {
-                            //     'purchase': double.tryParse(
-                            //                 purchaseController.text.trim())
-                            //             ?.round() ??
-                            //         0,
-                            //     'closestock': double.tryParse(
-                            //                 closingStockController.text.trim())
-                            //             ?.round() ??
-                            //         0,
-                            //     'mrp': mrpController.text,
-                            //   };
-                            // });
                           } else {
                             print("Closing stock is empty.");
-                            // setState(() {
-                            //   //editStatus[itemName] = true;
-                            //   editedValues[itemName] = {
-                            //     'purchase': double.tryParse(
-                            //                 purchaseController.text.trim())
-                            //             ?.round() ??
-                            //         0,
-                            //   };
-                            // });
                           }
 
                           // ✅ Insert or Update SKU data in the database
@@ -487,42 +306,19 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                             widget.storeCode,
                             widget.auditorId,
                             skuItem['product_code'],
-                            (skuItem['openstock'] != null &&
-                                        skuItem['openstock']
-                                            .toString()
-                                            .trim()
-                                            .isNotEmpty
+                            (skuItem['openstock'] != null && skuItem['openstock'].toString().trim().isNotEmpty
                                     ? skuItem['openstock']
                                     : skuItem['prev_closestock'])
                                 .toString(),
-                            (double.tryParse(purchaseController.text.trim())
-                                        ?.round() ??
-                                    0)
-                                .toString(),
+                            (double.tryParse(purchaseController.text.trim())?.round() ?? 0).toString(),
                             closingStockController.text.trim().isNotEmpty
-                                ? (double.tryParse(closingStockController.text
-                                                .trim())
-                                            ?.round() ??
-                                        0)
-                                    .toString()
+                                ? (double.tryParse(closingStockController.text.trim())?.round() ?? 0).toString()
                                 : '',
                             saleValue.toString(),
-                            (double.tryParse(wholesaleController.text.trim())
-                                        ?.round() ??
-                                    0)
-                                .toString(),
+                            (double.tryParse(wholesaleController.text.trim())?.round() ?? 0).toString(),
                             mrpController.text,
-                            (double.tryParse(avgSaleLastMonthController.text
-                                            .trim())
-                                        ?.round() ??
-                                    0)
-                                .toString(),
-                            (double.tryParse(avgSaleLastToLastMonthController
-                                            .text
-                                            .trim())
-                                        ?.round() ??
-                                    0)
-                                .toString(),
+                            (double.tryParse(avgSaleLastMonthController.text.trim())?.round() ?? 0).toString(),
+                            (double.tryParse(avgSaleLastToLastMonthController.text.trim())?.round() ?? 0).toString(),
                             skuItem['index'],
                           );
 
@@ -530,9 +326,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                               closingStockController.text.trim().isNotEmpty &&
                               mrpController.text.trim().isNotEmpty) {
                             _saveColorStatus(itemName, Colors.green.shade300);
-                          } else if (purchaseController.text
-                                  .trim()
-                                  .isNotEmpty ||
+                          } else if (purchaseController.text.trim().isNotEmpty ||
                               closingStockController.text.trim().isNotEmpty ||
                               mrpController.text.trim().isNotEmpty) {
                             _saveColorStatus(itemName, Colors.yellow.shade300);
@@ -540,8 +334,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                             _saveColorStatus(itemName, Colors.grey.shade300);
                           }
 
-                          ShowAlert.showSnackBar(
-                              context, 'SKU item updated successfully');
+                          ShowAlert.showSnackBar(context, 'SKU item updated successfully');
                           Navigator.pop(context);
                           _fetchSkuData();
                         },
@@ -564,50 +357,17 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
     );
   }
 
-  Future<void> _showAlertDialog(String title, String message) {
-    return showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          title: Row(
-            children: [
-              const Icon(Icons.warning_amber_rounded,
-                  color: Colors.red, size: 30),
-              const SizedBox(width: 10),
-              Text(title,
-                  style: const TextStyle(
-                      color: Colors.red, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          content: Text(message, style: const TextStyle(fontSize: 16)),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context), // ✅ Dismiss dialog
-              child: const Text("OK", style: TextStyle(color: Colors.blue)),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Future<bool> _showConfirmationDialog(String title, String message) async {
     return showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           title: Row(
             children: [
-              const Icon(Icons.warning_amber_rounded,
-                  color: Colors.red, size: 30),
+              const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 30),
               const SizedBox(width: 10),
-              Text(title,
-                  style: const TextStyle(
-                      color: Colors.red, fontWeight: FontWeight.bold)),
+              Text(title, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
             ],
           ),
           content: Text(message, style: const TextStyle(fontSize: 16)),
@@ -620,35 +380,21 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
             // ✅ "Continue" Button - Proceeds with update
             TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child:
-                  const Text("Continue", style: TextStyle(color: Colors.green)),
+              child: const Text("Continue", style: TextStyle(color: Colors.green)),
             ),
           ],
         );
       },
-    ).then((value) =>
-        value ?? false); // Ensure `false` if dialog is dismissed without choice
+    ).then((value) => value ?? false); // Ensure `false` if dialog is dismissed without choice
   }
 
-  Widget _buildEditableField(
-      String label, String value, String itemName, skuItem,
-      {TextEditingController? controller, Function()? onChanged}) {
+  Widget _buildEditableField(String label, String value, String itemName, skuItem, {TextEditingController? controller, Function()? onChanged}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: TextField(
         controller: controller ?? TextEditingController(text: value),
         onChanged: (text) {
           onChanged?.call();
-
-          // setState(() {
-          //   if (!editedValues.containsKey(itemName)) {
-          //     editedValues[itemName] = {};
-          //   }
-          //   editedValues[itemName]![label] = text;
-          //
-          //   // ✅ Trigger immediate color update
-          //   _updateColorStatus(itemName, skuItem);
-          // });
         },
         decoration: InputDecoration(
           labelText: label,
@@ -677,8 +423,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
 
   Future<void> _saveColorStatus(String itemName, Color color) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(
-        "color_${widget.storeCode}_${itemName.trim()}", color.value);
+    await prefs.setInt("color_${widget.storeCode}_${itemName.trim()}", color.value);
 
     // Save item names list explicitly
     List<String> editedItems = prefs.getStringList('editedItems') ?? [];
@@ -688,72 +433,9 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
     }
   }
 
-  Future<Color> _getSavedColor(String itemName) async {
-    final prefs = await SharedPreferences.getInstance();
-    int? colorValue = prefs.getInt("color_$itemName");
-
-    if (colorValue != null) {
-      return Color(colorValue);
-    }
-
-    return Colors.grey.shade300; // Default color if no saved data
-  }
-
-  // void _updateColorStatus(String itemName, skuItem) {
-  //   if (!mounted) return;
-  //
-  //   if (!editedValues.containsKey(itemName) ||
-  //       editedValues[itemName]!.isEmpty) {
-  //     setState(() {
-  //       skuItemColors[itemName] = Colors.grey.shade300;
-  //     });
-  //     return;
-  //   }
-  //
-  //   // ✅ Track only these specific fields
-  //   List<String> trackedFields = ['Purchase', 'Closing Stock (CS)', 'MRP'];
-  //
-  //   // ✅ Ensure the correct keys exist in skuItem
-  //   Map<String, String> fieldMappings = {
-  //     'Purchase': 'purchase',
-  //     'Closing Stock (CS)': 'closestock',
-  //     'MRP': 'mrp',
-  //   };
-  //
-  //   // ✅ Count how many of the 3 tracked fields have been changed
-  //   int editedFieldCount = trackedFields.where((field) {
-  //     String key = fieldMappings[field]!;
-  //     String? originalValue = skuItem[key]?.toString() ?? '';
-  //     String? editedValue =
-  //         editedValues[itemName]?[field]?.toString().trim() ?? '';
-  //
-  //     return editedValue.isNotEmpty && editedValue != originalValue;
-  //   }).length;
-  //
-  //   print('🔍 Edited Fields Count: $editedFieldCount for $itemName');
-  //   print('📌 Edited Data: ${editedValues[itemName]}');
-  //
-  //   // ✅ Assign color based on edits
-  //   Color color;
-  //   if (editedFieldCount == 3) {
-  //     color = Colors.green.shade300; // ✅ All 3 fields edited
-  //   } else if (editedFieldCount > 0) {
-  //     color = Colors.yellow.shade300; // ✅ 1 or 2 fields edited
-  //   } else {
-  //     color = Colors.grey.shade300; // ✅ None edited
-  //   }
-  //
-  //   setState(() {
-  //     skuItemColors[itemName] = color;
-  //   });
-  //
-  //   _saveColorStatus(itemName, color);
-  // }
-
   bool _allCardsGreen() {
-    return filteredSkuData.every((item) =>
-        skuItemColors.containsKey(item['item_description']) &&
-        skuItemColors[item['item_description']] == Colors.green.shade300);
+    return filteredSkuData
+        .every((item) => skuItemColors.containsKey(item['item_description']) && skuItemColors[item['item_description']] == Colors.green.shade300);
   }
 
   @override
@@ -764,8 +446,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
         elevation: 0,
         title: Text(
           'SKU List (${widget.storeName})',
-          style: TextStyle(
-              color: Colors.black, fontSize: 18, fontWeight: FontWeight.w500),
+          style: const TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w500, fontFamily: 'Inter'),
         ),
         iconTheme: const IconThemeData(color: Colors.black),
       ),
@@ -877,8 +558,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
-                            color:
-                                _allCardsGreen() ? Colors.white : Colors.grey,
+                            color: _allCardsGreen() ? Colors.white : Colors.grey,
                           ),
                         ),
                       ),
@@ -904,6 +584,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
           auditorId: widget.auditorId,
           option: widget.option,
           shortCode: widget.shortCode,
+          storeName: widget.storeName,
         ),
       ),
     );

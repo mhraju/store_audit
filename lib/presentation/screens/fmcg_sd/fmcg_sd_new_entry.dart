@@ -55,8 +55,7 @@ class _FmcgSdNewEntryState extends State<FmcgSdNewEntry> {
       isLoading = true; // Ensure UI shows loading state
     });
     await Future.delayed(const Duration(seconds: 1));
-    final fetchedData =
-        await dbManager.loadFMcgSdProductsAll(widget.dbPath, widget.storeCode);
+    final fetchedData = await dbManager.loadFMcgSdProductsAll(widget.dbPath, widget.storeCode);
 
     setState(() {
       skuData = fetchedData;
@@ -136,8 +135,7 @@ class _FmcgSdNewEntryState extends State<FmcgSdNewEntry> {
 
                     // Buttons Row
                     Row(
-                      mainAxisAlignment:
-                          MainAxisAlignment.spaceEvenly, // Align left & right
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly, // Align left & right
                       children: [
                         // Close Button (Left Aligned)
                         ElevatedButton(
@@ -145,8 +143,7 @@ class _FmcgSdNewEntryState extends State<FmcgSdNewEntry> {
                             Navigator.pop(context); // Close the bottom sheet
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                Colors.blue, // Set background color
+                            backgroundColor: Colors.blue, // Set background color
                             foregroundColor: Colors.white, // Set text color
                           ),
                           child: const Text('No'),
@@ -228,7 +225,7 @@ class _FmcgSdNewEntryState extends State<FmcgSdNewEntry> {
         elevation: 0,
         title: const Text(
           'New Entry',
-          style: TextStyle(color: Colors.black),
+          style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w500, fontFamily: 'Inter'),
         ),
         iconTheme: const IconThemeData(color: Colors.black),
       ),
@@ -335,10 +332,7 @@ class _FmcgSdNewEntryState extends State<FmcgSdNewEntry> {
                       child: const Center(
                         child: Text(
                           'New Introduction',
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white // Disable color if not green
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white // Disable color if not green
                               ),
                         ),
                       ),
@@ -354,20 +348,21 @@ class _FmcgSdNewEntryState extends State<FmcgSdNewEntry> {
   }
 
   void _navigateToNextPage() {
-    ShowAlert.showSnackBar(context, 'Development on going');
+    //ShowAlert.showSnackBar(context, 'Development on going');
     // Uncomment if you want to navigate to another page
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(
-    //     builder: (context) => FmcgSdNewIntro(
-    //       dbPath: widget.dbPath,
-    //       storeCode: widget.storeCode,
-    //       auditorId: widget.auditorId,
-    //       option: widget.option,
-    //       shortCode: widget.shortCode,
-    //     ),
-    //   ),
-    // );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FmcgSdNewIntro(
+          dbPath: widget.dbPath,
+          storeCode: widget.storeCode,
+          auditorId: widget.auditorId,
+          option: widget.option,
+          shortCode: widget.shortCode,
+          storeName: widget.storeName,
+        ),
+      ),
+    );
   }
 
   Widget _buildSkuItem(String title) {

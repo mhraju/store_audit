@@ -53,7 +53,7 @@ class _TobaccoAuditScreenState extends State<TobaccoAuditScreen> {
   void _syncDatabase() async {
     try {
       // await fetchStoresFromServer();
-      await checkConnection.checkConnection(context);
+      //await checkConnection.checkConnection(context);
       // await fileUploadDownload.uploadFile(context);
       // await fileUploadDownload.uploadImages(context);
       // _showSnackBar('Database synchronized successfully.');
@@ -104,8 +104,7 @@ class _TobaccoAuditScreenState extends State<TobaccoAuditScreen> {
     return InkWell(
       //onTap: () => _navigateToNextPage(title), // Navigate to the corresponding page
       splashColor: color.withOpacity(0.3), // Splash effect color
-      borderRadius:
-          BorderRadius.circular(10), // Rounded corners for the splash effect
+      borderRadius: BorderRadius.circular(10), // Rounded corners for the splash effect
       child: Card(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         elevation: 4,

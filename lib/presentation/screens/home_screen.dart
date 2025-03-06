@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:store_audit/db/database_manager.dart';
 import 'package:store_audit/presentation/screens/fmcg_sd/fmcg_sd_sku_list.dart';
@@ -15,7 +16,9 @@ import '../../utility/show_progress.dart';
 
 class HomeScreen extends StatefulWidget {
   final List<Map<String, dynamic>> fmcgStoreList;
-  const HomeScreen({super.key, required this.fmcgStoreList});
+  final String dbPath;
+  final String auditorId;
+  const HomeScreen({super.key, required this.fmcgStoreList, required this.dbPath, required this.auditorId});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -23,18 +26,25 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final ConnectionCheck checkConnection = ConnectionCheck();
-  final DatabaseManager dbManager = DatabaseManager();
   final FileUploadDownload fileUploadDownload = FileUploadDownload();
   List<Map<String, dynamic>> _fmcgStoreList = [];
-  String _auditorId = '';
-  String _dbPath = '';
   bool _isLoading = false;
+  String lastDownload = '';
+  int? downloadStatus;
 
   @override
   void initState() {
     super.initState();
     _fmcgStoreList = widget.fmcgStoreList;
     _getSP();
+  }
+
+  Future<void> _getSP() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      lastDownload = prefs.getString('last_download') ?? '';
+      downloadStatus = prefs.getInt('dwStatus');
+    });
   }
 
   Future<bool> _onWillPop() async {
@@ -60,31 +70,31 @@ class _HomeScreenState extends State<HomeScreen> {
     return shouldClose;
   }
 
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  }
-
-  Future<void> _getSP() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _auditorId = prefs.getString('auditorId') ?? 'No ID Found';
-      _dbPath = prefs.getString('dbPath') ?? 'No Path Found';
-    });
-  }
-
   Future<void> _syncDatabase() async {
-    try {
+    if (await checkConnection.checkConnection(context) == 'data' || await checkConnection.checkConnection(context) == 'wifi') {
       ShowProgress.showProgressDialogWithMsg(context);
-      await checkConnection.checkConnection(context);
-      //await dbManager.downloadAndSaveUserDatabase();
-      //_fmcgStoreList = await dbManager.loadFMcgSdStores(_dbPath, _auditorId);
+      await fileUploadDownload.getSyncStatus(context, widget.dbPath, widget.auditorId);
       ShowProgress.hideProgressDialog(context);
-      //ShowAlert.showSnackBar(context, 'Database sync successfully');
-    } catch (e) {
-      _showSnackBar('Error syncing database: $e');
+    } else {
+      ShowAlert.showSnackBar(context, await checkConnection.checkConnection(context));
     }
+    // try {
+    //
+    //   if (lastDownload.isNotEmpty) {
+    //     DateTime lastDownloadDate = DateFormat("yyyy-MM-dd HH:mm:ss").parse(lastDownload);
+    //     DateTime today = DateTime.now();
+    //     bool isSameDate = lastDownloadDate.year == today.year && lastDownloadDate.month == today.month && lastDownloadDate.day == today.day;
+    //     if (isSameDate && downloadStatus == 1) {
+    //       await checkConnection.checkConnection(context, widget.dbPath, widget.auditorId);
+    //       ShowAlert.showSnackBar(context, 'Database sync successfully');
+    //     } else {
+    //       ShowAlert.showSnackBar(context, 'Database already updated for today');
+    //     }
+    //   }
+    //   ShowProgress.hideProgressDialog(context);
+    // } catch (e) {
+    //   ShowAlert.showSnackBar(context, 'Please enable internet: $e');
+    // }
   }
 
   @override
@@ -184,18 +194,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Icons.local_grocery_store,
                 label: 'FMCG SD',
                 onTap: () {
-                  if (_fmcgStoreList != []) {
+                  if (downloadStatus != 1) {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => FMCGSDStores(
                             //storeList: storeList,
-                            dbPath: _dbPath,
-                            auditorId: _auditorId),
+                            dbPath: widget.dbPath,
+                            auditorId: widget.auditorId),
                       ),
                     );
                   } else {
-                    _showSnackBar('Database is not loaded.');
+                    ShowAlert.showSnackBar(context, 'Database is not loaded.');
                   }
                 },
               ),
@@ -204,23 +214,36 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Icons.smoking_rooms,
                 label: 'Tobacco',
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => FmcgSdSkuList(
-                          dbPath: _dbPath,
-                          storeCode: 'ZQY5FM',
-                          auditorId: _auditorId,
-                          option: 'Test',
-                          shortCode: 'RA',
-                          storeName: 'Sadek Departmental Store'),
-                    ),
-                  );
+                  // Navigator.push(
+                  //   context,
+                  //   MaterialPageRoute(
+                  //     builder: (context) => FmcgSdSkuList(
+                  //         dbPath: widget.dbPath,
+                  //         storeCode: 'ZQY5FM',
+                  //         auditorId: widget.auditorId,
+                  //         option: 'Test',
+                  //         shortCode: 'RA',
+                  //         storeName: 'Sadek Departmental Store'),
+                  //   ),
+                  // );
 
-                  //ShowAlert.showSnackBar(context, 'Development On Going');
+                  ShowAlert.showSnackBar(context, 'Development On Going');
                 },
               ),
             ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Last updated at: $lastDownload',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.grey,
+              fontFamily: 'Inter',
+              fontSize: 14,
+              letterSpacing: 0.6,
+              fontWeight: FontWeight.w500,
+              height: 1.5,
+            ),
           ),
         ],
       ),

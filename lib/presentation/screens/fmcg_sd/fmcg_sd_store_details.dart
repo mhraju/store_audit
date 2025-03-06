@@ -185,7 +185,14 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
       appBar: AppBar(
         backgroundColor: AppColors.appBarColor,
         elevation: 0,
-        title: const Text('Store Details'),
+        title: const Text(
+          'Store Details',
+          style: TextStyle(
+              color: Colors.black,
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+              fontFamily: 'Inter'),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.gps_fixed),
@@ -375,6 +382,7 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
                                 auditorId: widget.auditorId,
                                 option: widget.option,
                                 shortCode: widget.shortCode,
+                                storeName: _storeName,
                               ),
                             ),
                           );
