@@ -145,21 +145,24 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
         int closingStock = double.tryParse(closingStockController.text.trim())?.round() ?? 0;
         int calculatedSale = (openingStock + purchase) - closingStock;
 
-        if (calculatedSale < 0) {
-          // ✅ Reset Closing Stock (CS) to 0
-          setState(() {
-            closingStockController.text = '0'; // Reset CS field
-            saleValue = 0; // Reset Sale value
-          });
-
-          ShowAlert.showAlertDialog(
-              context, "Invalid Input", "Sale cannot be negative!\nClosing Stock (CS) has been reset to 0.\n\nPlease check your inputs.");
-        } else {
-          // ✅ Update sale value correctly
-          setState(() {
-            saleValue = calculatedSale;
-          });
-        }
+        // if (calculatedSale < 0) {
+        //   // ✅ Reset Closing Stock (CS) to 0
+        //   setState(() {
+        //     closingStockController.text = '0'; // Reset CS field
+        //     saleValue = calculatedSale; // Reset Sale value
+        //   });
+        //
+        //   ShowAlert.showAlertDialog(
+        //       context, "Invalid Input", "Sale cannot be negative!\nClosing Stock (CS) has been reset to 0.\n\nPlease check your inputs.");
+        // } else {
+        //   // ✅ Update sale value correctly
+        //   setState(() {
+        //     saleValue = calculatedSale;
+        //   });
+        // }
+        setState(() {
+          saleValue = calculatedSale;
+        });
       } else {
         print("Closing stock is empty on Sale");
         setState(() {
@@ -237,64 +240,68 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                             if (closingStock == 0) {
                               mrpController.text = '0';
                             } else {
-                              double? newMrp = double.tryParse(mrpController.text.trim());
+                              if (mrpController.text.trim().isNotEmpty) {
+                                double? newMrp = double.tryParse(mrpController.text.trim());
 
-                              double lastMrpFromDb = double.tryParse((skuItem['mrp']?.toString().isNotEmpty == true)
-                                      ? skuItem['mrp'].toString()
-                                      : (skuItem['prev_mrp']?.toString().isNotEmpty == true ? skuItem['prev_mrp'].toString() : '0')) ??
-                                  0;
+                                double lastMrpFromDb = double.tryParse((skuItem['mrp']?.toString().isNotEmpty == true)
+                                        ? skuItem['mrp'].toString()
+                                        : (skuItem['prev_mrp']?.toString().isNotEmpty == true ? skuItem['prev_mrp'].toString() : '0')) ??
+                                    0;
 
-                              print('$newMrp _ $lastMrpFromDb _ ${skuItem['prev_mrp']}');
+                                print('$newMrp _ $lastMrpFromDb _ ${skuItem['prev_mrp']}');
 
-                              if (newMrp == null || newMrp < 0) {
-                                mrpController.text = lastMrpFromDb.toString();
-                                return;
-                              }
+                                if (newMrp == null || newMrp < 0) {
+                                  mrpController.text = lastMrpFromDb.toString();
+                                  return;
+                                }
 
-                              if (lastMrpFromDb != 0.0) {
-                                double minAllowed = lastMrpFromDb * 0.8, maxAllowed = lastMrpFromDb * 1.2;
+                                if (lastMrpFromDb != 0.0) {
+                                  double minAllowed = lastMrpFromDb * 0.8, maxAllowed = lastMrpFromDb * 1.2;
 
-                                if ((newMrp < minAllowed || newMrp > maxAllowed) && !isProceed) {
-                                  _showConfirmationDialog(
-                                          "Invalid MRP",
-                                          "The new MRP ($newMrp) is outside the allowed 20% deviation range of previous MRP ($lastMrpFromDb).\n\n"
-                                              "Allowed range: $minAllowed - $maxAllowed.\n"
-                                              "Do you want to proceed anyway?")
-                                      .then((proceed) {
-                                    if (proceed) {
-                                      // ✅ User chose "Continue", proceed with the update
-                                      //_continueUpdateProcess();
-                                      setState(() {
-                                        isProceed = true;
-                                        mrpController.text = newMrp.toString();
-                                      });
-                                    } else {
-                                      // ✅ User chose "OK", reset MRP
-                                      setState(() {
-                                        isProceed = true;
-                                        mrpController.text = lastMrpFromDb.toString();
-                                      });
-                                    }
-                                  });
-                                  return; // Prevent immediate continuation
+                                  if ((newMrp < minAllowed || newMrp > maxAllowed) && !isProceed) {
+                                    _showConfirmationDialog(
+                                            "Invalid MRP",
+                                            "The new MRP ($newMrp) is outside the allowed 20% deviation range of previous MRP ($lastMrpFromDb).\n\n"
+                                                "Allowed range: $minAllowed - $maxAllowed.\n"
+                                                "Do you want to proceed anyway?")
+                                        .then((proceed) {
+                                      if (proceed) {
+                                        // ✅ User chose "Continue", proceed with the update
+                                        //_continueUpdateProcess();
+                                        setState(() {
+                                          isProceed = true;
+                                          mrpController.text = newMrp.toString();
+                                        });
+                                      } else {
+                                        // ✅ User chose "OK", reset MRP
+                                        setState(() {
+                                          isProceed = true;
+                                          mrpController.text = lastMrpFromDb.toString();
+                                        });
+                                      }
+                                    });
+                                    return; // Prevent immediate continuation
+                                  }
                                 }
                               }
                             }
 
                             // Ensure MRP is provided if closing stock > 0
-                            if (closingStock > 0 && (double.tryParse(mrpController.text.trim()) ?? 0) == 0) {
-                              ShowAlert.showAlertDialog(context, "MRP Required", "You must enter an MRP value when Closing Stock is greater than 0.");
-                            }
+                            // if (closingStock > 0 && (double.tryParse(mrpController.text.trim()) ?? 0) == 0) {
+                            //   ShowAlert.showAlertDialog(context, "MRP Required", "You must enter an MRP value when Closing Stock is greater than 0.");
+                            // }
 
-                            // wholesale check
-                            int wholesale = double.tryParse(wholesaleController.text.trim())?.round() ?? 0;
+                            if (wholesaleController.text.trim().isNotEmpty) {
+                              // wholesale check
+                              int wholesale = double.tryParse(wholesaleController.text.trim())?.round() ?? 0;
 
-                            print('sal: $saleValue _ $wholesale');
-                            if (wholesale > saleValue) {
-                              // ✅ Show an alert if Wholesale is greater than Sale
-                              ShowAlert.showAlertDialog(
-                                  context, "Invalid Input", "Wholesale cannot be more than Total Sales!\nPlease enter a valid value.");
-                              return; // ✅ Stop execution if validation fails
+                              print('sal: $saleValue _ $wholesale');
+                              if (wholesale > saleValue) {
+                                // ✅ Show an alert if Wholesale is greater than Sale
+                                ShowAlert.showAlertDialog(
+                                    context, "Invalid Input", "Wholesale cannot be more than Total Sales!\nPlease enter a valid value.");
+                                return; // ✅ Stop execution if validation fails
+                              }
                             }
                           } else {
                             print("Closing stock is empty.");
@@ -310,25 +317,38 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                                     ? skuItem['openstock']
                                     : skuItem['prev_closestock'])
                                 .toString(),
-                            (double.tryParse(purchaseController.text.trim())?.round() ?? 0).toString(),
+                            purchaseController.text.trim().isNotEmpty
+                                ? (double.tryParse(purchaseController.text.trim())?.round() ?? 0).toString()
+                                : '',
                             closingStockController.text.trim().isNotEmpty
                                 ? (double.tryParse(closingStockController.text.trim())?.round() ?? 0).toString()
                                 : '',
                             saleValue.toString(),
-                            (double.tryParse(wholesaleController.text.trim())?.round() ?? 0).toString(),
-                            mrpController.text,
-                            (double.tryParse(avgSaleLastMonthController.text.trim())?.round() ?? 0).toString(),
-                            (double.tryParse(avgSaleLastToLastMonthController.text.trim())?.round() ?? 0).toString(),
+                            wholesaleController.text.trim().isNotEmpty
+                                ? (double.tryParse(wholesaleController.text.trim())?.round() ?? 0).toString()
+                                : '',
+                            mrpController.text.trim().isNotEmpty ? mrpController.text : '',
+                            avgSaleLastMonthController.text.trim().isNotEmpty
+                                ? (double.tryParse(avgSaleLastMonthController.text.trim())?.round() ?? 0).toString()
+                                : '',
+                            avgSaleLastToLastMonthController.text.trim().isNotEmpty
+                                ? (double.tryParse(avgSaleLastToLastMonthController.text.trim())?.round() ?? 0).toString()
+                                : '',
                             skuItem['index'],
                           );
 
                           if (purchaseController.text.trim().isNotEmpty &&
                               closingStockController.text.trim().isNotEmpty &&
-                              mrpController.text.trim().isNotEmpty) {
+                              mrpController.text.trim().isNotEmpty &&
+                              saleValue > 0 &&
+                              (double.tryParse(avgSaleLastMonthController.text.trim())?.round() ?? 0) > 0 &&
+                              (double.tryParse(avgSaleLastToLastMonthController.text.trim())?.round() ?? 0) > 0) {
                             _saveColorStatus(itemName, Colors.green.shade300);
                           } else if (purchaseController.text.trim().isNotEmpty ||
                               closingStockController.text.trim().isNotEmpty ||
-                              mrpController.text.trim().isNotEmpty) {
+                              mrpController.text.trim().isNotEmpty ||
+                              avgSaleLastMonthController.text.trim().isNotEmpty ||
+                              avgSaleLastToLastMonthController.text.trim().isNotEmpty) {
                             _saveColorStatus(itemName, Colors.yellow.shade300);
                           } else {
                             _saveColorStatus(itemName, Colors.grey.shade300);
@@ -370,7 +390,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
               Text(title, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
             ],
           ),
-          content: Text(message, style: const TextStyle(fontSize: 16)),
+          content: Text(message, style: const TextStyle(fontSize: 14)),
           actions: [
             // ✅ "OK" Button - Resets MRP and dismisses
             TextButton(
@@ -487,13 +507,65 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                           final skuItem = filteredSkuData[index];
                           String itemName = skuItem['item_description'];
 
-                          return GestureDetector(
-                            onTap: () {
-                              _showBottomSheet(skuItem);
+                          return Dismissible(
+                            key: Key(itemName), // Unique key for each item
+                            background: Container(
+                              margin: const EdgeInsets.only(bottom: 6),
+                              color: Colors.blue, // Swipe right background (Edit)
+                              alignment: Alignment.centerLeft,
+                              padding: const EdgeInsets.only(left: 20),
+                              child: const Icon(Icons.edit, color: Colors.white),
+                            ),
+                            secondaryBackground: Container(
+                              margin: const EdgeInsets.only(bottom: 6),
+                              color: Colors.red, // Swipe left background (Delete)
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: 20),
+                              child: const Icon(Icons.delete, color: Colors.white),
+                            ),
+                            confirmDismiss: (direction) async {
+                              if (direction == DismissDirection.startToEnd) {
+                                _showBottomSheet(skuItem);
+                                return false; // Prevent actual dismiss
+                              } else if (direction == DismissDirection.endToStart) {
+                                bool confirmDelete = await showDialog(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: const Row(
+                                      children: [
+                                        Icon(Icons.warning_amber_rounded, color: Colors.red, size: 30),
+                                        SizedBox(width: 10),
+                                        Text("Delete SKU Item", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                                      ],
+                                    ),
+                                    content: const Text("Are you sure you want to delete this Sku Item?"),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.of(ctx).pop(false),
+                                        child: const Text("Cancel"),
+                                      ),
+                                      TextButton(
+                                        onPressed: () => Navigator.of(ctx).pop(true),
+                                        child: const Text("Delete", style: TextStyle(color: Colors.red)),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                return confirmDelete; // Delete only if confirmed
+                              }
+                              return false;
                             },
-                            child: _buildSkuItem(
-                              itemName,
-                              skuItemColors[itemName] ?? Colors.grey.shade300,
+                            onDismissed: (direction) {
+                              if (direction == DismissDirection.endToStart) {
+                                _deleteSKU(skuItem['product_code']); // Delete the SKU item
+                              }
+                            },
+                            child: GestureDetector(
+                              onTap: () => _showBottomSheet(skuItem),
+                              child: _buildSkuItem(
+                                itemName,
+                                skuItemColors[itemName] ?? Colors.grey.shade300,
+                              ),
                             ),
                           );
                         },
@@ -573,6 +645,12 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
     );
   }
 
+  void _deleteSKU(String productCode) async {
+    //await DBHelper.instance.delete(id);
+    await dbManager.deleteFMcgSdStoreProduct(context, widget.dbPath, widget.auditorId, widget.storeCode, productCode);
+    _fetchSkuData();
+  }
+
   void _navigateToNextPage() {
     //ShowAlert.showSnackBar(context, 'Audit Ok');
     Navigator.push(
@@ -593,6 +671,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
   Widget _buildSkuItem(String title, Color backgroundColor) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
+      width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: backgroundColor,

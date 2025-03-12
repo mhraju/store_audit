@@ -199,7 +199,7 @@ class _FMCGSDStoresState extends State<FMCGSDStores> with SingleTickerProviderSt
 
   Widget _buildListView(List<Map<String, dynamic>> data) {
     if (data.isEmpty) {
-      return const Center(child: Text('No results found'));
+      return const Center(child: Text('No store found'));
     }
     return ListView.builder(
       itemCount: data.length,

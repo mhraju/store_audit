@@ -40,7 +40,11 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
   bool isLoading = true;
   final DatabaseManager dbManager = DatabaseManager();
   String? selectedCategory;
+  String? selectedCompany;
+  String? selectedPack;
   List<Map<String, dynamic>> categories = [];
+  List<Map<String, dynamic>> companies = [];
+  List<Map<String, dynamic>> packTypes = [];
   final ImagePicker _picker = ImagePicker();
   final List<File> _imageFiles = [];
   String? selectedCategoryCode;
@@ -58,9 +62,11 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
       isLoading = true; // Ensure UI shows loading state
     });
     // await Future.delayed(const Duration(seconds: 1));
-    final fetchedData = await dbManager.loadFmcgSdProductCategories(widget.dbPath);
+    final fetchedData = await dbManager.loadFmcgSdProductData(widget.dbPath);
     setState(() {
-      categories = fetchedData;
+      categories = fetchedData['categories'] ?? [];
+      companies = fetchedData['companies'] ?? [];
+      packTypes = fetchedData['packTypes'] ?? [];
       isLoading = false;
     });
   }
@@ -132,8 +138,16 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
         ShowAlert.showSnackBar(context, "Please select any Category.");
         return;
       }
+      if (selectedCompany == null) {
+        ShowAlert.showSnackBar(context, "Please select any Company.");
+        return;
+      }
       if (selectedOption == null) {
         ShowAlert.showSnackBar(context, "Please select 'FMCG' or 'SD'.");
+        return;
+      }
+      if (selectedPack == null) {
+        ShowAlert.showSnackBar(context, "Please select any Pack Type.");
         return;
       }
       // print("Form Submitted with:");
@@ -169,11 +183,11 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
           selectedOption!,
           productCode,
           selectedCategoryName!,
-          companyController.text.trim(),
+          selectedCompany!,
           countryController.text.trim(),
           brandController.text.trim(),
           itemDescriptionController.text.trim(),
-          packTypeController.text.trim(),
+          selectedPack!,
           packSizeController.text.trim(),
           promotypeController.text,
           mrpController.text,
@@ -198,11 +212,11 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
           productCode,
           selectedCategoryCode!,
           selectedCategoryName!,
-          companyController.text,
+          selectedCompany!,
           brandController.text,
           countryController.text,
           itemDescriptionController.text,
-          packTypeController.text,
+          selectedPack!,
           packSizeController.text,
           promotypeController.text,
           mrpController.text,
@@ -212,11 +226,11 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
 
         setState(() {
           selectedOption = null;
-          companyController.clear();
+          selectedCompany = null;
           countryController.clear();
           brandController.clear();
           itemDescriptionController.clear();
-          packTypeController.clear();
+          selectedPack = null;
           packSizeController.clear();
           promotypeController.clear();
           mrpController.clear();
@@ -281,7 +295,7 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
                               padding: const EdgeInsets.symmetric(horizontal: 0),
                               child: Text(
                                 '${cat['category_name']}',
-                                style: const TextStyle(fontSize: 15),
+                                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.normal),
                               ),
                             ),
                           ))
@@ -314,7 +328,10 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
                   items: ['FMCG', 'SD'].map((String value) {
                     return DropdownMenuItem<String>(
                       value: value,
-                      child: Text(value),
+                      child: Text(
+                        value,
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.normal),
+                      ),
                     );
                   }).toList(),
                   onChanged: (newValue) {
@@ -329,12 +346,67 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
 
                 const SizedBox(height: 12),
 
+                DropdownButtonFormField<String>(
+                  value: selectedCompany,
+                  decoration: _inputDecoration("Select Company"),
+                  items: [
+                    ...[...companies.map((company) => company['company'] as String), 'Others'].map((company) => DropdownMenuItem<String>(
+                          value: company,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 0),
+                            child: Text(
+                              company,
+                              style: TextStyle(fontSize: 15, fontWeight: company == 'Others' ? FontWeight.normal : FontWeight.normal),
+                            ),
+                          ),
+                        ))
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      selectedCompany = value; // Update selected company
+                    });
+                  },
+                  validator: (value) => value == null ? "Select a company" : null,
+                  dropdownColor: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+
+                const SizedBox(height: 12),
+
                 /// **Input Fields**
-                _buildTextField("Company", companyController),
                 _buildTextField("Country", countryController),
                 _buildTextField("Brand", brandController),
                 _buildTextField("Item Description", itemDescriptionController),
-                _buildTextField("Pack Type", packTypeController),
+
+                const SizedBox(height: 12),
+
+                DropdownButtonFormField<String>(
+                  value: selectedPack,
+                  decoration: _inputDecoration("Select Pack Type"),
+                  items: packTypes
+                      .map((pack) => DropdownMenuItem<String>(
+                            value: pack['pack_type'] as String, // Ensure correct key 'pack_type'
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 0),
+                              child: Text(
+                                pack['pack_type'] as String, // Display correct text
+                                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.normal),
+                              ),
+                            ),
+                          ))
+                      .toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      selectedPack = value; // Correctly update selectedPack
+                    });
+                  },
+                  validator: (value) => value == null ? "Select a pack type" : null, // Fix validation message
+                  dropdownColor: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+
+                const SizedBox(height: 12),
+
                 _buildTextField("Pack Size", packSizeController),
                 _buildTextField("Promotype", promotypeController, isRequired: false),
                 _buildTextField("MRP", mrpController, isNumeric: true),

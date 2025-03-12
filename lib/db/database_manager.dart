@@ -340,19 +340,61 @@ class DatabaseManager {
     }
   }
 
-  Future<List<Map<String, dynamic>>> loadFmcgSdProductCategories(String dbPath) async {
+  // Future<List<Map<String, dynamic>>> loadFmcgSdProductCategories(String dbPath) async {
+  //   try {
+  //     final db = await loadDatabase(dbPath);
+  //     final fmcgSdProductCategories = await db.rawQuery('''
+  //     SELECT DISTINCT category_code, category_name
+  //     FROM products
+  //     ORDER BY category_name;
+  //   ''');
+  //     await db.close();
+  //     return fmcgSdProductCategories;
+  //   } catch (e) {
+  //     print('Failed to load FMCG and SD product categories: $e');
+  //     return []; // Return empty list on failure
+  //   }
+  // }
+
+  Future<Map<String, List<Map<String, dynamic>>>> loadFmcgSdProductData(String dbPath) async {
     try {
       final db = await loadDatabase(dbPath);
-      final fmcgSdProductCategories = await db.rawQuery('''
+
+      // Query to get distinct category_code and category_name
+      final categories = await db.rawQuery('''
       SELECT DISTINCT category_code, category_name 
       FROM products 
       ORDER BY category_name;
     ''');
+
+      // Query to get distinct company list
+      final companies = await db.rawQuery('''
+      SELECT DISTINCT company 
+      FROM products 
+      ORDER BY company;
+    ''');
+
+      // Query to get distinct pack types
+      final packTypes = await db.rawQuery('''
+      SELECT DISTINCT pack_type 
+      FROM products 
+      ORDER BY pack_type;
+    ''');
+
       await db.close();
-      return fmcgSdProductCategories;
+
+      return {
+        'categories': categories,
+        'companies': companies,
+        'packTypes': packTypes,
+      };
     } catch (e) {
-      print('Failed to load FMCG and SD product categories: $e');
-      return []; // Return empty list on failure
+      print('Failed to load FMCG and SD product data: $e');
+      return {
+        'categories': [],
+        'companies': [],
+        'packTypes': [],
+      }; // Return empty lists on failure
     }
   }
 
@@ -388,7 +430,7 @@ class DatabaseManager {
             'created_at': DateTime.now().toIso8601String(),
           },
         );
-        ShowAlert.showSnackBar(context, 'New SKU inserted and updated successfully');
+        ShowAlert.showSnackBar(context, 'New SKU inserted successfully');
         print('New entry is inserted successfully for store_code: $storeCode');
       }
 
@@ -549,5 +591,41 @@ class DatabaseManager {
     print('prev data $prevClosingStock _ $prevMrp');
 
     return {'prevMrp': prevMrp, 'prevClosingStock': prevClosingStock};
+  }
+
+  Future<void> deleteFMcgSdStoreProduct(
+    BuildContext context,
+    String dbPath,
+    String auditorId,
+    String storeCode,
+    String productCode,
+  ) async {
+    try {
+      // Open the database
+      final Database db = await openDatabase(dbPath);
+
+      // Perform delete operation
+      int rowsDeleted = await db.delete(
+        'store_products',
+        where: 'store_code = ? AND product_code = ?',
+        whereArgs: [storeCode, productCode],
+      );
+
+      // Show success message if any row was deleted
+      if (rowsDeleted > 0) {
+        ShowAlert.showSnackBar(context, 'The SKU has been deleted successfully');
+        print('The SKU for store_code: $storeCode was deleted successfully.');
+      } else {
+        ShowAlert.showSnackBar(context, 'No matching SKU found to delete.');
+        print('No SKU found for store_code: $storeCode and product_code: $productCode.');
+      }
+
+      // Close the database
+      await db.close();
+    } catch (e) {
+      // Handle errors
+      print('Error deleting SKU: $e');
+      throw Exception('Failed to delete SKU: $e');
+    }
   }
 }

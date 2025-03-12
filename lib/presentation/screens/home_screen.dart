@@ -51,7 +51,13 @@ class _HomeScreenState extends State<HomeScreen> {
     final shouldClose = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Exit App'),
+            title: const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.red, size: 30),
+                SizedBox(width: 10),
+                Text('Exit App', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+              ],
+            ),
             content: const Text('Are you sure you want to close the app?'),
             actions: [
               TextButton(
@@ -60,7 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               TextButton(
                 onPressed: () => SystemNavigator.pop(),
-                child: const Text('Exit'),
+                child: const Text('Exit', style: TextStyle(color: Colors.red)),
               ),
             ],
           ),
@@ -214,20 +220,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Icons.smoking_rooms,
                 label: 'Tobacco',
                 onTap: () {
-                  // Navigator.push(
-                  //   context,
-                  //   MaterialPageRoute(
-                  //     builder: (context) => FmcgSdSkuList(
-                  //         dbPath: widget.dbPath,
-                  //         storeCode: 'ZQY5FM',
-                  //         auditorId: widget.auditorId,
-                  //         option: 'Test',
-                  //         shortCode: 'RA',
-                  //         storeName: 'Sadek Departmental Store'),
-                  //   ),
-                  // );
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => FmcgSdSkuList(
+                          dbPath: widget.dbPath,
+                          storeCode: 'ZQY5FM',
+                          auditorId: widget.auditorId,
+                          option: 'Test',
+                          shortCode: 'RA',
+                          storeName: 'Sadek Departmental Store'),
+                    ),
+                  );
 
-                  ShowAlert.showSnackBar(context, 'Development On Going');
+                  //ShowAlert.showSnackBar(context, 'Development On Going');
                 },
               ),
             ],
