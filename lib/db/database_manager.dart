@@ -68,13 +68,13 @@ class DatabaseManager {
     try {
       final db = await loadDatabase(dbPath);
       final storesWithSchedules = await db.rawQuery('''
-  SELECT *
-  FROM stores s
-  JOIN store_schedules ss
-  ON s.code = ss.store_code
-  WHERE ss.employee_code = ?
-  ORDER BY s.status, ss.date ASC;
-''', [auditorId]);
+      SELECT *
+      FROM stores s
+      JOIN store_schedules ss
+      ON s.code = ss.store_code
+      WHERE s.status = 0 AND ss.employee_code = ?
+      ORDER BY s.status, ss.date ASC;
+    ''', [auditorId]);
 
       await db.close();
       return storesWithSchedules;
@@ -145,7 +145,6 @@ class DatabaseManager {
       await db.update(
         'stores', // Table name
         {
-          'status': status,
           'update_status': updateStatus,
           'status_name': statusName,
           'status_short_name': statusShortName,

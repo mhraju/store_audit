@@ -71,11 +71,9 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
     });
   }
 
-  TextEditingController companyController = TextEditingController();
   TextEditingController countryController = TextEditingController();
   TextEditingController brandController = TextEditingController();
   TextEditingController itemDescriptionController = TextEditingController();
-  TextEditingController packTypeController = TextEditingController();
   TextEditingController packSizeController = TextEditingController();
   TextEditingController promotypeController = TextEditingController();
   TextEditingController mrpController = TextEditingController();
@@ -618,5 +616,16 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
         //borderSide: BorderSide.merge(a, b),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    countryController.dispose();
+    brandController.dispose();
+    itemDescriptionController.dispose();
+    packSizeController.dispose();
+    promotypeController.dispose();
+    mrpController.dispose();
+    super.dispose();
   }
 }

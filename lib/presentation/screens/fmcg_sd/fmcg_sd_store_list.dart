@@ -76,14 +76,14 @@ class _FMCGSDStoresState extends State<FMCGSDStores> with SingleTickerProviderSt
 
   int _getCount(int status) {
     return _filteredData.where((item) {
-      int itemStatus = int.tryParse(item['status'].toString()) ?? -1;
+      int itemStatus = int.tryParse(item['update_status'].toString()) ?? -1;
       return itemStatus == status;
     }).length;
   }
 
   List<Map<String, dynamic>> _getFilteredData(int status) {
     return _filteredData.where((item) {
-      int itemStatus = int.tryParse(item['status'].toString()) ?? -1;
+      int itemStatus = int.tryParse(item['update_status'].toString()) ?? -1;
       return itemStatus == status;
     }).toList();
   }
@@ -205,7 +205,7 @@ class _FMCGSDStoresState extends State<FMCGSDStores> with SingleTickerProviderSt
       itemCount: data.length,
       itemBuilder: (context, index) {
         final item = data[index];
-        int status = int.tryParse(item['status'].toString()) ?? -1;
+        int status = int.tryParse(item['update_status'].toString()) ?? -1;
         return Card(
           margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           child: ListTile(
@@ -254,10 +254,10 @@ class _FMCGSDStoresState extends State<FMCGSDStores> with SingleTickerProviderSt
             //   ],
             // ),
             onTap: () {
-              if (item['status_short_name'] != 'RA') {
-                _showOptionsDialog(context, item);
-              } else {
+              if (item['status_short_name'] == 'RA' && status == 1) {
                 ShowAlert.showSnackBar(context, 'This store has already audited for this month');
+              } else {
+                _showOptionsDialog(context, item);
               }
             },
           ),
@@ -280,7 +280,7 @@ class _FMCGSDStoresState extends State<FMCGSDStores> with SingleTickerProviderSt
     );
   }
 
-  void _showOptionsDialog(BuildContext context, item) {
+  void _showOptionsDialog(BuildContext context, Map<String, dynamic> item) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -288,21 +288,41 @@ class _FMCGSDStoresState extends State<FMCGSDStores> with SingleTickerProviderSt
           title: const Text('Choose an Option'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildOption(context, 'Initial Audit (IA)', 'IA', item),
-              const Divider(),
-              _buildOption(context, 'Re Audit (RA)', 'RA', item),
-              const Divider(),
-              _buildOption(context, 'Temporary Closed (TC)', 'TC', item),
-              const Divider(),
-              _buildOption(context, 'Permanent Closed (PC)', 'PC', item),
-              const Divider(),
-              _buildOption(context, 'Consider as New Store (CANS)', 'CANS', item),
-            ],
+            children: _buildDialogOptions(context, item),
           ),
         );
       },
     );
+  }
+
+  List<Widget> _buildDialogOptions(BuildContext context, Map<String, dynamic> item) {
+    List<Widget> options = [];
+
+    if (item['status_short_name'] == 'RA' || item['status_short_name'] == 'CANS' || item['status_short_name'] == 'IA') {
+      options.add(_buildOption(context, 'Re Audit (RA)', 'RA', item));
+      options.add(const Divider());
+      options.add(_buildOption(context, 'Temporary Closed (TC)', 'TC', item));
+      options.add(const Divider());
+      options.add(_buildOption(context, 'Permanent Closed (PC)', 'PC', item));
+    } else if (item['status_short_name'] == 'TC') {
+      options.add(_buildOption(context, 'Permanent Closed (PC)', 'PC', item));
+      options.add(const Divider());
+      options.add(_buildOption(context, 'Consider as New Store (CANS)', 'CANS', item));
+    } else if (item['status_short_name'] == 'PC') {
+      options.add(_buildOption(context, 'Consider as New Store (CANS)', 'CANS', item));
+    } else {
+      options.add(_buildOption(context, 'Initial Audit (IA)', 'IA', item));
+      options.add(const Divider());
+      options.add(_buildOption(context, 'Re Audit (RA)', 'RA', item));
+      options.add(const Divider());
+      options.add(_buildOption(context, 'Temporary Closed (TC)', 'TC', item));
+      options.add(const Divider());
+      options.add(_buildOption(context, 'Permanent Closed (PC)', 'PC', item));
+      options.add(const Divider());
+      options.add(_buildOption(context, 'Consider as New Store (CANS)', 'CANS', item));
+    }
+
+    return options;
   }
 
   Widget _buildOption(BuildContext context, String option, String shortCode, item) {
