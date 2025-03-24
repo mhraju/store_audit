@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -72,7 +73,7 @@ class DatabaseManager {
       FROM stores s
       JOIN store_schedules ss
       ON s.code = ss.store_code
-      WHERE s.status = 0 AND ss.employee_code = ?
+      WHERE s.status = 1 AND ss.employee_code = ?
       ORDER BY s.status, ss.date ASC;
     ''', [auditorId]);
 
@@ -109,7 +110,7 @@ class DatabaseManager {
           'land_mark': landmark,
           'store_photo': store_photo,
           'updated_by': auditorId,
-          'updated_at': DateTime.now().toIso8601String(),
+          'updated_at': DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
         },
         where: 'code COLLATE NOCASE = ?', // Ensures case-insensitive matching
         whereArgs: [storeCode],
@@ -149,7 +150,7 @@ class DatabaseManager {
           'status_name': statusName,
           'status_short_name': statusShortName,
           'updated_by': auditorId,
-          'updated_at': DateTime.now().toIso8601String(),
+          'updated_at': DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
         },
         where: 'code COLLATE NOCASE = ?', // Ensures case-insensitive matching
         whereArgs: [storeCode],
@@ -163,7 +164,7 @@ class DatabaseManager {
           'selfie': selfie,
           'attachment': attachment,
           'updated_by': auditorId,
-          'updated_at': DateTime.now().toIso8601String(),
+          'updated_at': DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
         },
         where: 'store_code COLLATE NOCASE = ?', // Ensures case-insensitive matching
         whereArgs: [storeCode],
@@ -200,11 +201,13 @@ class DatabaseManager {
     COALESCE(fsu.closestock, '') AS closestock,
     COALESCE(fsu.mrp, '') AS mrp,
     COALESCE(fsu.sale, '') AS sale,
+    COALESCE(fsu.chilled_stock, '') AS chilled_stock,
+    COALESCE(fsu.chilled_face, '') AS chilled_face,
+    COALESCE(fsu.warm_face, '') AS warm_face,
     COALESCE(fsu.wholesale, '') AS wholesale,
     COALESCE(fsu.sale_last_month, '') AS sale_last_month,
     COALESCE(fsu.sale_last_to_last_month, '') AS sale_last_to_last_month,
     COALESCE(fsu.status, '') AS status,
-    COALESCE(fsu.status_code, '') AS status_code,
     COALESCE(fsu.audit_type, '') AS audit_type,
 
     -- ✅ Always keep last month's `mrp` and `closestock` separately
@@ -239,8 +242,8 @@ class DatabaseManager {
     }
   }
 
-  // Function to update SKU details
-  Future<void> insertOrUpdateFmcgSdSkuDetails(
+  // Function to update Fmcg SKU details
+  Future<void> insertOrUpdateFmcgSkuDetails(
     String dbPath,
     String storeCode,
     String auditorId,
@@ -282,8 +285,9 @@ class DatabaseManager {
             'mrp': mrp,
             'sale_last_month': avgSaleLastMonth,
             'sale_last_to_last_month': avgSaleLastToLastMonth,
+            'status': '1',
             'updated_by': auditorId,
-            'updated_at': DateTime.now().toLocal().toIso8601String(), // Ensures timezone consistency
+            'updated_at': DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
           },
           where: '''
     store_code = ? 
@@ -311,8 +315,108 @@ class DatabaseManager {
             'mrp': mrp,
             'sale_last_month': avgSaleLastMonth,
             'sale_last_to_last_month': avgSaleLastToLastMonth,
+            'status': '0',
             'created_by': auditorId,
-            'created_at': DateTime.now().toIso8601String(),
+            'created_at': DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
+          },
+        );
+        print('Sku details insert successfully for store_code: $storeCode');
+      }
+
+      // Close the database
+      await db.close();
+    } catch (e) {
+      // Handle errors
+      print('Error updating Sku details: $e');
+      throw Exception('Failed to update Sku details: $e');
+    }
+  }
+
+  // Function to update SD SKU details
+  Future<void> insertOrUpdateSdSkuDetails(
+    String dbPath,
+    String storeCode,
+    String auditorId,
+    String productCode,
+    String openStock,
+    String purchase,
+    String closeStock,
+    String sale,
+    String chilledStock,
+    String chilledFace,
+    String warmFace,
+    String wholesale,
+    String mrp,
+    String avgSaleLastMonth,
+    String avgSaleLastToLastMonth,
+    String panel,
+  ) async {
+    try {
+      final Database db = await openDatabase(dbPath);
+
+      // Check if the record exists
+      List<Map<String, dynamic>> existingRows = await db.query(
+        'fmcg_store_updates',
+        where: 'store_code = ? AND product_code = ? AND substr(date, 1, 7) = strftime("%Y-%m", "now")',
+        whereArgs: [storeCode, productCode],
+      );
+
+      print('mrp: $mrp');
+
+      if (existingRows.isNotEmpty) {
+        // UPDATE existing record
+        await db.update(
+          'fmcg_store_updates',
+          {
+            'date': DateTime.now().toLocal().toIso8601String().substring(0, 10), // Ensures YYYY-MM-DD format
+            'panel': panel,
+            'openstock': openStock,
+            'purchase': purchase,
+            'closestock': closeStock,
+            'sale': sale,
+            'chilled_stock': chilledStock,
+            'chilled_face': chilledFace,
+            'warm_face': warmFace,
+            'wholesale': wholesale,
+            'mrp': mrp,
+            'sale_last_month': avgSaleLastMonth,
+            'sale_last_to_last_month': avgSaleLastToLastMonth,
+            'status': '1',
+            'updated_by': auditorId,
+            'updated_at': DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
+          },
+          where: '''
+    store_code = ? 
+    AND product_code = ? 
+    AND substr(date, 1, 7) = strftime('%Y-%m', 'now')
+  ''',
+          whereArgs: [storeCode, productCode],
+        );
+        print('Sku details updated successfully for store_code: $storeCode');
+      } else {
+        // INSERT new record
+        await db.insert(
+          'fmcg_store_updates',
+          {
+            'date': DateTime.now().toLocal().toIso8601String().substring(0, 10),
+            'panel': panel,
+            'store_code': storeCode,
+            'employee_code': auditorId,
+            'product_code': productCode,
+            'openstock': openStock,
+            'purchase': purchase,
+            'closestock': closeStock,
+            'sale': sale,
+            'chilled_stock': chilledStock,
+            'chilled_face': chilledFace,
+            'warm_face': warmFace,
+            'wholesale': wholesale,
+            'mrp': mrp,
+            'sale_last_month': avgSaleLastMonth,
+            'sale_last_to_last_month': avgSaleLastToLastMonth,
+            'status': '0',
+            'created_by': auditorId,
+            'created_at': DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
           },
         );
         print('Sku details insert successfully for store_code: $storeCode');
@@ -338,22 +442,6 @@ class DatabaseManager {
       return []; // Return empty list on failure
     }
   }
-
-  // Future<List<Map<String, dynamic>>> loadFmcgSdProductCategories(String dbPath) async {
-  //   try {
-  //     final db = await loadDatabase(dbPath);
-  //     final fmcgSdProductCategories = await db.rawQuery('''
-  //     SELECT DISTINCT category_code, category_name
-  //     FROM products
-  //     ORDER BY category_name;
-  //   ''');
-  //     await db.close();
-  //     return fmcgSdProductCategories;
-  //   } catch (e) {
-  //     print('Failed to load FMCG and SD product categories: $e');
-  //     return []; // Return empty list on failure
-  //   }
-  // }
 
   Future<Map<String, List<Map<String, dynamic>>>> loadFmcgSdProductData(String dbPath) async {
     try {
@@ -426,7 +514,7 @@ class DatabaseManager {
             'store_code': storeCode,
             'product_code': productCode,
             'created_by': auditorId, // Nullable
-            'created_at': DateTime.now().toIso8601String(),
+            'created_at': DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
           },
         );
         ShowAlert.showSnackBar(context, 'New SKU inserted successfully');
@@ -487,7 +575,7 @@ class DatabaseManager {
           'photo4': photo4,
           'update_status': 1,
           'created_by': auditorId,
-          'created_at': DateTime.now().toIso8601String(),
+          'created_at': DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
         },
       );
 
@@ -539,7 +627,7 @@ class DatabaseManager {
           'price': mrp,
           'update_status': 1,
           'created_by': auditorId,
-          'created_at': DateTime.now().toIso8601String(),
+          'created_at': DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
         },
       );
 

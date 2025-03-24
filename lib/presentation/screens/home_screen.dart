@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -6,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:store_audit/db/database_manager.dart';
 import 'package:store_audit/presentation/screens/fmcg_sd/fmcg_sd_sku_list.dart';
 import 'package:store_audit/presentation/screens/fmcg_sd/fmcg_sd_store_list.dart';
+import 'package:store_audit/presentation/screens/login_screen.dart';
 import 'package:store_audit/service/file_upload_download.dart';
 import 'package:store_audit/utility/assets_path.dart';
 import 'package:store_audit/utility/show_alert.dart';
@@ -18,7 +21,12 @@ class HomeScreen extends StatefulWidget {
   final List<Map<String, dynamic>> fmcgStoreList;
   final String dbPath;
   final String auditorId;
-  const HomeScreen({super.key, required this.fmcgStoreList, required this.dbPath, required this.auditorId});
+  const HomeScreen({
+    super.key,
+    required this.fmcgStoreList,
+    required this.dbPath,
+    required this.auditorId,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -37,6 +45,12 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _fmcgStoreList = widget.fmcgStoreList;
     _getSP();
+  }
+
+  @override
+  void dispose() {
+    // Example: dispose any controllers or close streams if added in future
+    super.dispose();
   }
 
   Future<void> _getSP() async {
@@ -113,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
           elevation: 0,
           title: SvgPicture.asset(
             AssetsPath.appBarLogoSvg, // Replace with your SVG file path
-            width: 260,
+            width: 250,
             fit: BoxFit.fitWidth, // Adjust size as needed
           ),
           automaticallyImplyLeading: false,
@@ -121,6 +135,46 @@ class _HomeScreenState extends State<HomeScreen> {
             IconButton(
               icon: const Icon(Icons.sync, color: Colors.black),
               onPressed: _syncDatabase,
+            ),
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, color: Colors.black),
+              onSelected: (value) async {
+                if (value == 'profile') {
+                  await loadUserDataFromPrefs();
+                } else if (value == 'logout') {
+                  _logout(context);
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                    value: 'profile',
+                    child: Row(
+                      children: [
+                        Icon(Icons.person, size: 20),
+                        SizedBox(width: 10),
+                        Text('Show Profile'),
+                      ],
+                    )),
+                const PopupMenuItem(
+                  enabled: false,
+                  height: 1, // minimal height
+                  padding: EdgeInsets.zero,
+                  child: Divider(
+                    height: 0.5,
+                    thickness: 0.8,
+                    color: Colors.black12,
+                  ),
+                ),
+                const PopupMenuItem(
+                    value: 'logout',
+                    child: Row(
+                      children: [
+                        Icon(Icons.logout, size: 20),
+                        SizedBox(width: 10),
+                        Text('Log Out'),
+                      ],
+                    )),
+              ],
             ),
           ],
         ),
@@ -169,6 +223,79 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Future<void> loadUserDataFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    _showProfileBottomSheet(context, prefs.getString('code'), prefs.getString('name'), prefs.getString('phone'), prefs.getString('designation'),
+        prefs.getString('supervisor_name'), prefs.getString('zone'));
+  }
+
+  void _showProfileBottomSheet(BuildContext context, code, name, phone, designation, supervisor_name, zone) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      isScrollControlled: true, // <-- important for avoiding overflow
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'User Profile',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(Icons.person),
+                  title: Text(name),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.phone),
+                  title: Text(phone),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.code),
+                  title: Text(code),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.badge),
+                  title: Text(designation),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.star),
+                  title: Text(supervisor_name),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.location_searching),
+                  title: Text(zone),
+                ),
+                const SizedBox(height: 24), // Extra space at bottom
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _logout(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    final dbFile = File(widget.dbPath);
+    if (await dbFile.exists()) {
+      await dbFile.delete();
+      print('Database deleted');
+    }
+    await prefs.clear(); // Clear user data
+    ShowAlert.showSnackBar(context, 'Logged out');
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => LoginWidget()),
+    );
+  }
+
   Widget _buildHomeContent(List<Map<String, dynamic>> storeList) {
     return SingleChildScrollView(
       child: Column(
@@ -211,7 +338,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     );
                   } else {
-                    ShowAlert.showSnackBar(context, 'Database is not loaded.');
+                    ShowAlert.showSnackBar(context, 'Database is not updated.');
                   }
                 },
               ),
@@ -220,20 +347,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Icons.smoking_rooms,
                 label: 'Tobacco',
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => FmcgSdSkuList(
-                          dbPath: widget.dbPath,
-                          storeCode: 'ZQY5FM',
-                          auditorId: widget.auditorId,
-                          option: 'Test',
-                          shortCode: 'RA',
-                          storeName: 'Sadek Departmental Store'),
-                    ),
-                  );
+                  // Navigator.push(
+                  //   context,
+                  //   MaterialPageRoute(
+                  //     builder: (context) => FmcgSdSkuList(
+                  //         dbPath: widget.dbPath,
+                  //         storeCode: 'ZQY5FM',
+                  //         auditorId: widget.auditorId,
+                  //         option: 'Test',
+                  //         shortCode: 'RA',
+                  //         storeName: 'Sadek Departmental Store'),
+                  //   ),
+                  // );
 
-                  //ShowAlert.showSnackBar(context, 'Development On Going');
+                  ShowAlert.showSnackBar(context, 'Development On Going');
                 },
               ),
             ],

@@ -94,8 +94,7 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
     try {
       LocationPermission permission = await Geolocator.checkPermission();
 
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
+      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
         permission = await Geolocator.requestPermission();
 
         if (permission == LocationPermission.denied) {
@@ -115,12 +114,10 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
         }
       }
 
-      if (permission == LocationPermission.always ||
-          permission == LocationPermission.whileInUse) {
+      if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
         Position position = await Geolocator.getCurrentPosition();
         setState(() {
-          locationStatus =
-              "Latitude: ${position.latitude}, Longitude: ${position.longitude}";
+          locationStatus = "Latitude: ${position.latitude}, Longitude: ${position.longitude}";
         });
 
         _checkIfInsideGeofence(position.latitude, position.longitude);
@@ -172,9 +169,7 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
 
     if (!isInsideGeofence) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text(
-                "You are outside the geofence area. Please move inside the geofence to proceed.")),
+        const SnackBar(content: Text("You are outside the geofence area. Please move inside the geofence to proceed.")),
       );
     }
   }
@@ -187,11 +182,7 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
         elevation: 0,
         title: const Text(
           'Store Details',
-          style: TextStyle(
-              color: Colors.black,
-              fontSize: 18,
-              fontWeight: FontWeight.w500,
-              fontFamily: 'Inter'),
+          style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w500, fontFamily: 'Inter'),
         ),
         actions: [
           IconButton(
@@ -205,121 +196,117 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Image placeholder or captured image
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Image placeholder or captured image
 
-                  Center(
-                    child: isLoading
-                        ? const SizedBox(
-                            height: 130,
-                            width: 300,
-                            child: Center(child: CircularProgressIndicator()),
-                          )
-                        : _capturedImage != null
-                            ? Image.file(
-                                _capturedImage!,
-                                height: 130,
-                                width: 300,
-                                fit: BoxFit.cover,
-                              )
-                            : (store_photo.isNotEmpty &&
-                                    File(store_photo).existsSync())
-                                ? Image.file(
-                                    File(
-                                        store_photo), // ✅ Load image from file path
-                                    height: 130,
-                                    width: 300,
-                                    fit: BoxFit.cover,
-                                  )
-                                : const Icon(Icons.image,
-                                    size: 100,
-                                    color: Colors.grey), // Default icon
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Store details
-                  Center(
-                    child: Text(
-                      '$_storeName',
-                      style: const TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.bold),
+                    Center(
+                      child: isLoading
+                          ? const SizedBox(
+                              height: 130,
+                              width: 300,
+                              child: Center(child: CircularProgressIndicator()),
+                            )
+                          : _capturedImage != null
+                              ? Image.file(
+                                  _capturedImage!,
+                                  height: 130,
+                                  width: 300,
+                                  fit: BoxFit.cover,
+                                )
+                              : (store_photo.isNotEmpty && File(store_photo).existsSync())
+                                  ? Image.file(
+                                      File(store_photo), // ✅ Load image from file path
+                                      height: 130,
+                                      width: 300,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : const Icon(Icons.image, size: 100, color: Colors.grey), // Default icon
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    'Store Code: ${widget.storeData['code'] ?? 'N/A'}',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Contact Number: $_contact',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Division: ${widget.storeData['division'] ?? 'N/A'}',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'District: ${widget.storeData['district'] ?? 'N/A'}',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Thana: ${widget.storeData['thana'] ?? 'N/A'}',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Area: ${widget.storeData['area_village_name'] ?? 'N/A'}',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Union: ${widget.storeData['union_ward'] ?? 'N/A'}',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Address: $_detailAddress',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Landmark: ${widget.storeData['land_mark'] ?? 'N/A'}',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Shop type: ${widget.storeData['shop_type'] ?? 'N/A'}',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 16),
 
-                  // Show loading or location status
-                  if (isLoading)
-                    const Center(child: CircularProgressIndicator()),
+                    const SizedBox(height: 16),
 
-                  // Show OTP verification link if outside geofence
-                  if (!isInsideGeofence && !isLoading && !otpVerified)
-                    GestureDetector(
-                      onTap: _showOtpDialog,
-                      child: const Center(
-                        child: Text(
-                          'GeoLocation not working, you can verify via OTP',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.blue,
-                            fontSize: 16,
+                    // Store details
+                    Center(
+                      child: Text(
+                        '$_storeName',
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Store Code: ${widget.storeData['code'] ?? 'N/A'}',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Contact Number: $_contact',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Division: ${widget.storeData['division'] ?? 'N/A'}',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'District: ${widget.storeData['district'] ?? 'N/A'}',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Thana: ${widget.storeData['thana'] ?? 'N/A'}',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Area: ${widget.storeData['area_village_name'] ?? 'N/A'}',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Union: ${widget.storeData['union_ward'] ?? 'N/A'}',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Address: $_detailAddress',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Landmark: ${widget.storeData['land_mark'] ?? 'N/A'}',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Shop type: ${widget.storeData['shop_type'] ?? 'N/A'}',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Show loading or location status
+                    if (isLoading) const Center(child: CircularProgressIndicator()),
+
+                    // Show OTP verification link if outside geofence
+                    if (!isInsideGeofence && !isLoading && !otpVerified)
+                      GestureDetector(
+                        onTap: _showOtpDialog,
+                        child: const Center(
+                          child: Text(
+                            'GeoLocation not working, you can verify via OTP',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 16,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -349,10 +336,7 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
                       child: const Center(
                         child: Text(
                           'Edit',
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white),
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),
                         ),
                       ),
                     ),
@@ -371,8 +355,7 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
                         //     builder: (context) => const StoreClose(),
                         //   ),
                         // );
-                        if (_option == 'Temporary Closed (TC)' ||
-                            _option == 'Permanent Closed (PC)') {
+                        if (_option == 'Temporary Closed (TC)' || _option == 'Permanent Closed (PC)') {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -406,10 +389,7 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
                       child: const Center(
                         child: Text(
                           'Next',
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white),
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),
                         ),
                       ),
                     ),
@@ -446,8 +426,7 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
             ElevatedButton(
               onPressed: () {
                 String enteredOtp = otpController.text.trim();
-                String? storedOtp = widget.storeData['geo_otp']
-                    ?.toString(); // ✅ Ensure it's a string
+                String? storedOtp = widget.storeData['geo_otp']?.toString(); // ✅ Ensure it's a string
 
                 if (enteredOtp.isEmpty) {
                   ShowAlert.showSnackBar(context, 'Please enter an OTP.');
@@ -461,8 +440,7 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
                   ShowAlert.showSnackBar(context, 'OTP verified successfully!');
                   Navigator.pop(context); //
                 } else {
-                  ShowAlert.showSnackBar(
-                      context, 'Invalid OTP. Please try again.');
+                  ShowAlert.showSnackBar(context, 'Invalid OTP. Please try again.');
                 }
               },
               child: const Text('Submit'),
@@ -475,14 +453,10 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
 
   // Bottom sheet for editing details and capturing an image
   void _showEditBottomSheet() {
-    TextEditingController nameController =
-        TextEditingController(text: _storeName);
-    TextEditingController contactController =
-        TextEditingController(text: _contact);
-    TextEditingController detailAddressController =
-        TextEditingController(text: _detailAddress);
-    TextEditingController landmarkController = TextEditingController(
-        text: _landmark); // Initialize with the current store name
+    TextEditingController nameController = TextEditingController(text: _storeName);
+    TextEditingController contactController = TextEditingController(text: _contact);
+    TextEditingController detailAddressController = TextEditingController(text: _detailAddress);
+    TextEditingController landmarkController = TextEditingController(text: _landmark); // Initialize with the current store name
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -510,8 +484,7 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
                   ),
                   TextField(
                     controller: detailAddressController,
-                    decoration:
-                        const InputDecoration(labelText: 'Detail Address'),
+                    decoration: const InputDecoration(labelText: 'Detail Address'),
                   ),
                   TextField(
                     controller: landmarkController,
@@ -522,16 +495,13 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
                   // Image capture
                   Center(
                     child: ElevatedButton.icon(
-                      onPressed:
-                          _captureImage, // Call the image capture function
-                      icon:
-                          const Icon(Icons.camera_alt, size: 24), // Camera icon
+                      onPressed: _captureImage, // Call the image capture function
+                      icon: const Icon(Icons.camera_alt, size: 24), // Camera icon
                       label: const Text('Take Store Photo'), // Button label
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue, // Button background color
                         foregroundColor: Colors.white, // Text and icon color
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 12, horizontal: 20),
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8.0),
                         ),
@@ -541,8 +511,7 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
 
                   const SizedBox(height: 24),
                   Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment.spaceEvenly, // Align left & right
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly, // Align left & right
                     children: [
                       // Update and Close buttons
                       ElevatedButton(
@@ -550,10 +519,8 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
                           Navigator.pop(context); // Close the bottom sheet
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              Colors.blue, // Set the background color to blue
-                          foregroundColor:
-                              Colors.white, // Set the text color to white
+                          backgroundColor: Colors.blue, // Set the background color to blue
+                          foregroundColor: Colors.white, // Set the text color to white
                         ),
                         child: const Text('Close'),
                       ),
@@ -561,14 +528,10 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
                         onPressed: () async {
                           final newName = nameController.text.trim();
                           final newContact = contactController.text.trim();
-                          final newDetailAddress =
-                              detailAddressController.text.trim();
+                          final newDetailAddress = detailAddressController.text.trim();
                           final newLandmark = landmarkController.text.trim();
 
-                          if (newName.isNotEmpty ||
-                              newContact.isNotEmpty ||
-                              newDetailAddress.isNotEmpty ||
-                              newLandmark.isNotEmpty) {
+                          if (newName.isNotEmpty || newContact.isNotEmpty || newDetailAddress.isNotEmpty || newLandmark.isNotEmpty) {
                             setState(() {
                               _storeName = newName;
                               _contact = newContact;
@@ -589,19 +552,15 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
                                 store_photo);
 
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text(
-                                      'Store details updated successfully')),
+                              const SnackBar(content: Text('Store details updated successfully')),
                             );
                           }
 
                           Navigator.pop(context); // Close the bottom sheet
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              Colors.blue, // Set the background color to blue
-                          foregroundColor:
-                              Colors.white, // Set the text color to white
+                          backgroundColor: Colors.blue, // Set the background color to blue
+                          foregroundColor: Colors.white, // Set the text color to white
                         ),
                         child: const Text('Update'),
                       ),
@@ -638,24 +597,18 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
         customDir.createSync(recursive: true);
       }
 
-      final img.Image? originalImage =
-          img.decodeImage(await File(photo.path).readAsBytes());
+      final img.Image? originalImage = img.decodeImage(await File(photo.path).readAsBytes());
       if (originalImage != null) {
-        final img.Image resizedImage =
-            img.copyResize(originalImage, width: 500, height: 500);
-        final String timestamp =
-            DateTime.now().millisecondsSinceEpoch.toString();
-        final String newFileName =
-            'store_${widget.storeData['store_code']}_$timestamp.jpg';
+        final img.Image resizedImage = img.copyResize(originalImage, width: 500, height: 500);
+        final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+        final String newFileName = 'store_${widget.storeData['store_code']}_$timestamp.jpg';
 
         final String newPath = '$customPath/$newFileName';
-        final File resizedFile = File('${photo.path}_resized.jpg')
-          ..writeAsBytesSync(img.encodeJpg(resizedImage));
+        final File resizedFile = File('${photo.path}_resized.jpg')..writeAsBytesSync(img.encodeJpg(resizedImage));
         final File newImage = await resizedFile.copy(newPath);
 
         final prefs = await SharedPreferences.getInstance();
-        List<String> savedStoreImgPaths =
-            prefs.getStringList('storeImagePaths') ?? [];
+        List<String> savedStoreImgPaths = prefs.getStringList('storeImagePaths') ?? [];
         List<String> savedPaths = prefs.getStringList('imagePaths') ?? [];
         // Check if 'store_photo' exists in the list & remove it
         if (store_photo.trim().isNotEmpty) {
@@ -666,8 +619,7 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
 
           // Normalize paths before checking
           String normalizedStorePhoto = store_photo.trim();
-          savedStoreImgPaths
-              .removeWhere((path) => path.trim() == normalizedStorePhoto);
+          savedStoreImgPaths.removeWhere((path) => path.trim() == normalizedStorePhoto);
           savedPaths.removeWhere((path) => path.trim() == normalizedStorePhoto);
 
           print("Updated savedPaths after removal: $savedStoreImgPaths");

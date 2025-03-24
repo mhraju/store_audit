@@ -22,11 +22,22 @@ class _LoginWidgetState extends State<LoginWidget> {
   String _dbPath = '';
   String _auditorId = '';
   String dbUrl = '';
+  //late Map<String, dynamic> userData;
 
   // Save input data to local storage
   Future<void> _saveAuditorId(String auditorId) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('auditorId', auditorId);
+  }
+
+  Future<void> saveUserDataToPrefs(userData) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('code', userData['code']);
+    await prefs.setString('name', userData['name']);
+    await prefs.setString('phone', userData['phone']);
+    await prefs.setString('designation', userData['designation']);
+    await prefs.setString('supervisor_name', userData['supervisor_name']);
+    await prefs.setString('zone', userData['zone']);
   }
 
   // Function to make an API call
@@ -73,6 +84,7 @@ class _LoginWidgetState extends State<LoginWidget> {
       if (responseData['status'] == 1) {
         // print('Loginn okkk');
         // Return the database path from the response
+        await saveUserDataToPrefs(responseData['data']);
         await _fetchDatabasePath(auditorId);
       } else {
         ShowProgress.hideProgressDialog(context);

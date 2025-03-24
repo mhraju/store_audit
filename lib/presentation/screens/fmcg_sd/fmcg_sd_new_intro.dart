@@ -39,7 +39,6 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
   final _formKey = GlobalKey<FormState>();
   bool isLoading = true;
   final DatabaseManager dbManager = DatabaseManager();
-  String? selectedCategory;
   String? selectedCompany;
   String? selectedPack;
   List<Map<String, dynamic>> categories = [];
