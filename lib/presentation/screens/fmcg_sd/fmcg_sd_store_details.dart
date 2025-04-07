@@ -218,7 +218,8 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
                                 )
                               : (store_photo.isNotEmpty && File(store_photo).existsSync())
                                   ? Image.file(
-                                      File(store_photo), // ✅ Load image from file path
+                                      File(
+                                          '/data/user/0/com.luminaries_research.store_audit/app_flutter/$store_photo'), // ✅ Load image from file path
                                       height: 130,
                                       width: 300,
                                       fit: BoxFit.cover,
@@ -625,8 +626,8 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
           print("Updated savedPaths after removal: $savedStoreImgPaths");
         }
         // Add the new path
-        savedStoreImgPaths.add(newPath);
-        savedPaths.add(newPath);
+        savedStoreImgPaths.add(newFileName);
+        savedPaths.add(newFileName);
         // Save updated list to SharedPreferences
         await prefs.setStringList('storeImagePaths', savedStoreImgPaths);
         await prefs.setStringList('imagePaths', savedPaths);

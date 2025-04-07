@@ -341,8 +341,12 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                               closingStockController.text.trim().isNotEmpty &&
                               mrpController.text.trim().isNotEmpty &&
                               saleValue >= 0 &&
-                              (double.tryParse(avgSaleLastMonthController.text.trim())?.round() ?? 0) >= 0 &&
-                              (double.tryParse(avgSaleLastToLastMonthController.text.trim())?.round() ?? 0) >= 0) {
+                              wholesaleController.text.trim().isNotEmpty &&
+                              avgSaleLastMonthController.text.trim().isNotEmpty &&
+                              avgSaleLastToLastMonthController.text.trim().isNotEmpty)
+                          // (double.tryParse(avgSaleLastMonthController.text.trim())?.round() ?? 0) >= 0 &&
+                          // (double.tryParse(avgSaleLastToLastMonthController.text.trim())?.round() ?? 0) >= 0)
+                          {
                             _saveColorStatus(itemName, Colors.green.shade300);
                           } else if (purchaseController.text.trim().isNotEmpty ||
                               closingStockController.text.trim().isNotEmpty ||
@@ -658,11 +662,17 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                               closingStockController.text.trim().isNotEmpty &&
                               mrpController.text.trim().isNotEmpty &&
                               saleValue >= 0 &&
-                              (double.tryParse(chilledStockController.text.trim())?.round() ?? 0) >= 0 &&
-                              (double.tryParse(chilledFaceController.text.trim())?.round() ?? 0) >= 0 &&
-                              (double.tryParse(warmFaceController.text.trim())?.round() ?? 0) >= 0 &&
-                              (double.tryParse(avgSaleLastMonthController.text.trim())?.round() ?? 0) >= 0 &&
-                              (double.tryParse(avgSaleLastToLastMonthController.text.trim())?.round() ?? 0) >= 0) {
+                              wholesaleController.text.trim().isNotEmpty &&
+                              // (double.tryParse(chilledStockController.text.trim())?.round() ?? 0) >= 0 &&
+                              // (double.tryParse(chilledFaceController.text.trim())?.round() ?? 0) >= 0 &&
+                              // (double.tryParse(warmFaceController.text.trim())?.round() ?? 0) >= 0 &&
+                              // (double.tryParse(avgSaleLastMonthController.text.trim())?.round() ?? 0) >= 0 &&
+                              // (double.tryParse(avgSaleLastToLastMonthController.text.trim())?.round() ?? 0) >= 0
+                              chilledStockController.text.trim().isNotEmpty &&
+                              chilledFaceController.text.trim().isNotEmpty &&
+                              warmFaceController.text.trim().isNotEmpty &&
+                              avgSaleLastToLastMonthController.text.trim().isNotEmpty &&
+                              avgSaleLastToLastMonthController.text.trim().isNotEmpty) {
                             _saveColorStatus(itemName, Colors.green.shade300);
                           } else if (purchaseController.text.trim().isNotEmpty ||
                               closingStockController.text.trim().isNotEmpty ||

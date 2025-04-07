@@ -7,12 +7,14 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image/image.dart' as img;
+import 'package:path/path.dart' as p;
 import 'package:store_audit/presentation/screens/fmcg_sd/fmcg_sd_new_entry.dart';
 import 'package:store_audit/presentation/screens/fmcg_sd/fmcg_sd_sku_list.dart';
 import '../../../db/database_manager.dart';
 import '../../../utility/app_colors.dart';
 import '../../../utility/show_alert.dart';
 import '../../../utility/show_progress.dart';
+import 'package:dropdown_search/dropdown_search.dart';
 
 class FmcgSdNewIntro extends StatefulWidget {
   final String dbPath;
@@ -50,6 +52,8 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
   String? selectedCategoryName;
   String? selectedOption; // No default value
 
+  TextEditingController otherCompanyController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -77,6 +81,36 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
   TextEditingController promotypeController = TextEditingController();
   TextEditingController mrpController = TextEditingController();
 
+  void _showOtherCompanyDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Enter Company Name"),
+        content: TextField(
+          controller: otherCompanyController,
+          decoration: const InputDecoration(hintText: "Company Name"),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // close the dialog
+            },
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                selectedCompany = otherCompanyController.text;
+              });
+              Navigator.of(context).pop(); // close the dialog
+            },
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// **Capture image, resize it & save the path**
   Future<void> _takePhoto() async {
     try {
@@ -92,7 +126,8 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
         if (originalImage != null) {
           final img.Image resizedImage = img.copyResize(originalImage, width: 500, height: 500);
           final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-          final String newPath = '$customPath/product_$timestamp.jpg';
+          final String newFileName = 'product_$timestamp.jpg';
+          final String newPath = '$customPath/$newFileName';
 
           // Save resized image
           final File resizedFile = File('${pickedFile.path}_resized.jpg')..writeAsBytesSync(img.encodeJpg(resizedImage));
@@ -166,7 +201,7 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
         final prefs = await SharedPreferences.getInstance();
         List<String> savedPaths = prefs.getStringList('imagePaths') ?? []; // Get existing saved images
         if (_imageFiles.isNotEmpty) {
-          List<String> newPaths = _imageFiles.map((file) => file.path).toList();
+          List<String> newPaths = _imageFiles.map((file) => p.basename(file.path)).toList();
           savedPaths = {...savedPaths, ...newPaths}.toList();
         }
         await prefs.setStringList('imagePaths', savedPaths); //
@@ -343,30 +378,56 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
 
                 const SizedBox(height: 12),
 
-                DropdownButtonFormField<String>(
-                  value: selectedCompany,
-                  decoration: _inputDecoration("Select Company"),
-                  items: [
-                    ...[...companies.map((company) => company['company'] as String), 'Others'].map((company) => DropdownMenuItem<String>(
-                          value: company,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 0),
-                            child: Text(
-                              company,
-                              style: TextStyle(fontSize: 15, fontWeight: company == 'Others' ? FontWeight.normal : FontWeight.normal),
-                            ),
-                          ),
-                        ))
-                  ],
-                  onChanged: (value) {
-                    setState(() {
-                      selectedCompany = value; // Update selected company
-                    });
+                DropdownSearch<String>(
+                  selectedItem: selectedCompany,
+                  asyncItems: (String filter) async {
+                    return [
+                      ...companies.map((c) => c['company'] as String),
+                      'Others',
+                    ];
                   },
-                  validator: (value) => value == null ? "Select a company" : null,
-                  dropdownColor: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
+                  popupProps: const PopupProps.menu(
+                    showSearchBox: true,
+                  ),
+                  dropdownDecoratorProps: DropDownDecoratorProps(
+                    dropdownSearchDecoration: _inputDecoration("Select Company"),
+                  ),
+                  onChanged: (value) {
+                    if (value == 'Others') {
+                      _showOtherCompanyDialog(context);
+                    } else {
+                      setState(() {
+                        selectedCompany = value;
+                      });
+                    }
+                  },
+                  validator: (value) => value == null || value.isEmpty ? "Select a company" : null,
                 ),
+
+                // DropdownButtonFormField<String>(
+                //   value: selectedCompany,
+                //   decoration: _inputDecoration("Select Company"),
+                //   items: [
+                //     ...[...companies.map((company) => company['company'] as String), 'Others'].map((company) => DropdownMenuItem<String>(
+                //           value: company,
+                //           child: Padding(
+                //             padding: const EdgeInsets.symmetric(horizontal: 0),
+                //             child: Text(
+                //               company,
+                //               style: TextStyle(fontSize: 15, fontWeight: company == 'Others' ? FontWeight.normal : FontWeight.normal),
+                //             ),
+                //           ),
+                //         ))
+                //   ],
+                //   onChanged: (value) {
+                //     setState(() {
+                //       selectedCompany = value; // Update selected company
+                //     });
+                //   },
+                //   validator: (value) => value == null ? "Select a company" : null,
+                //   dropdownColor: Colors.white,
+                //   borderRadius: BorderRadius.circular(10),
+                // ),
 
                 const SizedBox(height: 12),
 
@@ -625,6 +686,7 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
     packSizeController.dispose();
     promotypeController.dispose();
     mrpController.dispose();
+    otherCompanyController.dispose();
     super.dispose();
   }
 }

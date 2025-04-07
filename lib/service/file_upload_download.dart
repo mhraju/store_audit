@@ -2,7 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:intl/intl.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../db/database_manager.dart';
@@ -159,7 +160,7 @@ class FileUploadDownload {
       return;
     }
 
-    // Show the progress dialog
+    // Show progress dialog
     ShowProgress.showProgressDialogWithMsg(context);
 
     const String apiUrl = 'https://mcdphp8.bol-online.com/luminaries-app/api/v1/upload-user-files';
@@ -167,15 +168,20 @@ class FileUploadDownload {
     try {
       var request = http.MultipartRequest('POST', Uri.parse(apiUrl))..fields['code'] = auditorId;
 
-      print("Total Image Paths:  $savedPaths");
+      // Get app's internal storage path
+      final dir = await getApplicationDocumentsDirectory();
 
-      for (String path in List.from(savedPaths)) {
-        File imageFile = File(path);
+      List<String> validPaths = [];
+
+      print("Total Image Paths: $savedPaths");
+
+      for (String fileName in savedPaths) {
+        String fullPath = p.join(dir.path, fileName);
+        File imageFile = File(fullPath);
 
         if (await imageFile.exists()) {
-          request.files.add(await http.MultipartFile.fromPath('files[]', path));
-        } else {
-          savedPaths.remove(path);
+          validPaths.add(fileName);
+          request.files.add(await http.MultipartFile.fromPath('files[]', fullPath));
         }
       }
 
@@ -183,15 +189,16 @@ class FileUploadDownload {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('No valid images to upload.')),
         );
-        Navigator.of(context, rootNavigator: true).pop(); // Dismiss the dialog
+        Navigator.of(context, rootNavigator: true).pop();
         return;
       }
 
       var response = await request.send();
 
       if (response.statusCode == 200) {
-        // for (String path in List.from(savedPaths)) {
-        //   File(path).deleteSync();
+        // Optionally delete local files:
+        // for (String fileName in validPaths) {
+        //   File(p.join(dir.path, fileName)).deleteSync();
         // }
 
         await prefs.remove('imagePaths');
@@ -208,8 +215,7 @@ class FileUploadDownload {
         SnackBar(content: Text('Error uploading images: $e')),
       );
     } finally {
-      // Dismiss the progress dialog
-      Navigator.of(context, rootNavigator: true).pop();
+      Navigator.of(context, rootNavigator: true).pop(); // Dismiss progress dialog
     }
   }
 }

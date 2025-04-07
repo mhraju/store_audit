@@ -132,11 +132,11 @@ class _FmcgSdStoreAuditState extends State<FmcgSdStoreAudit> {
 
         final prefs = await SharedPreferences.getInstance();
         List<String> savedPaths = prefs.getStringList('imagePaths') ?? [];
-        print('prev images $savedPaths');
-        savedPaths.add(newPath);
+        //print('prev images $savedPaths');
+        savedPaths.add(newFileName);
         await prefs.setStringList('imagePaths', savedPaths);
 
-        print('new images $savedPaths');
+        //print('new images $savedPaths');
 
         setState(() {
           _selfieImage = newImage;
@@ -161,7 +161,8 @@ class _FmcgSdStoreAuditState extends State<FmcgSdStoreAudit> {
         if (originalImage != null) {
           final img.Image resizedImage = img.copyResize(originalImage, width: 500, height: 500);
           final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-          final String newPath = '$customPath/cash_memo_${widget.storeCode}_$timestamp.jpg';
+          final String newFileName = 'cash_memo_${widget.storeCode}_$timestamp.jpg';
+          final String newPath = '$customPath/$newFileName';
 
           // Save resized image
           final File resizedFile = File('${pickedFile.path}_resized.jpg')..writeAsBytesSync(img.encodeJpg(resizedImage));
@@ -170,7 +171,7 @@ class _FmcgSdStoreAuditState extends State<FmcgSdStoreAudit> {
           // Save image path in SharedPreferences
           final prefs = await SharedPreferences.getInstance();
           List<String> savedPaths = prefs.getStringList('imagePaths') ?? [];
-          savedPaths.add(newPath);
+          savedPaths.add(newFileName);
           await prefs.setStringList('imagePaths', savedPaths);
 
           setState(() {
