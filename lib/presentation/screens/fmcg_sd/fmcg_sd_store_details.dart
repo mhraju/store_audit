@@ -151,7 +151,7 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
     // Parse the latitude and longitude as doubles
     double geofenceLatitude = double.parse(coordinates[0]);
     double geofenceLongitude = double.parse(coordinates[1]);
-    const double geofenceRadius = 100; // 100 meters radius
+    const double geofenceRadius = 30; // 100 meters radius
 
     print('Latitude: $geofenceLatitude ....    $userLatitude');
     print('Longitude: $geofenceLongitude ..... $userLongitude');

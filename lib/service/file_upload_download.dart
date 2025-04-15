@@ -71,7 +71,7 @@ class FileUploadDownload {
         final responseData = json.decode(response.body);
 
         if (responseData['status'] == 1) {
-          print('DbPath okkk');
+          //print('DbPath okkk');
           // Ensure 'data' and 'path' exist before accessing
           if (responseData['data'] != null && responseData['data']['path'] != null) {
             return responseData['data']['path'];
@@ -173,7 +173,7 @@ class FileUploadDownload {
 
       List<String> validPaths = [];
 
-      print("Total Image Paths: $savedPaths");
+      //print("Total Image Paths: $savedPaths");
 
       for (String fileName in savedPaths) {
         String fullPath = p.join(dir.path, fileName);

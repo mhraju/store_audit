@@ -88,7 +88,13 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
         title: const Text("Enter Company Name"),
         content: TextField(
           controller: otherCompanyController,
-          decoration: const InputDecoration(hintText: "Company Name"),
+          decoration: const InputDecoration(
+            hintText: "Company Name",
+            hintStyle: TextStyle(
+              color: Colors.grey,
+              fontSize: 14,
+            ),
+          ),
         ),
         actions: [
           TextButton(
@@ -382,8 +388,8 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
                   selectedItem: selectedCompany,
                   asyncItems: (String filter) async {
                     return [
-                      ...companies.map((c) => c['company'] as String),
                       'Others',
+                      ...companies.map((c) => c['company'] as String),
                     ];
                   },
                   popupProps: const PopupProps.menu(

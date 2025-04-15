@@ -309,7 +309,7 @@ class _FMCGSDStoresState extends State<FMCGSDStores> with SingleTickerProviderSt
       options.add(const Divider());
       options.add(_buildOption(context, 'Consider as New Store (CANS)', 'CANS', item));
     } else if (item['status_short_name'] == 'PC') {
-      options.add(_buildOption(context, 'Consider as New Store (CANS)', 'CANS', item));
+      options.add(_buildOption(context, 'Initial Audit (IA)', 'IA', item));
     } else {
       options.add(_buildOption(context, 'Initial Audit (IA)', 'IA', item));
       options.add(const Divider());

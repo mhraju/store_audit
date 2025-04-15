@@ -53,7 +53,7 @@ class _TobaccoAuditScreenState extends State<TobaccoAuditScreen> {
   void _syncDatabase() async {
     try {
       // await fetchStoresFromServer();
-      //await checkConnection.checkConnection(context);
+      await checkConnection.checkConnection(context);
       // await fileUploadDownload.uploadFile(context);
       // await fileUploadDownload.uploadImages(context);
       // _showSnackBar('Database synchronized successfully.');
@@ -69,47 +69,47 @@ class _TobaccoAuditScreenState extends State<TobaccoAuditScreen> {
   }
 
   // Function to navigate to different pages based on the card title
-  // void _navigateToNextPage(String title) {
-  //   switch (title) {
-  //     case 'First Visit':
-  //       Navigator.push(
-  //         context,
-  //         MaterialPageRoute(builder: (context) => FirstVisitPage()),
-  //       );
-  //       break;
-  //     case 'Second Visit':
-  //       Navigator.push(
-  //         context,
-  //         MaterialPageRoute(builder: (context) => SecondVisitPage()),
-  //       );
-  //       break;
-  //     case 'Store Audit':
-  //       Navigator.push(
-  //         context,
-  //         MaterialPageRoute(builder: (context) => StoreAuditPage()),
-  //       );
-  //       break;
-  //     default:
-  //     // Default case to handle unexpected titles
-  //       Navigator.push(
-  //         context,
-  //         MaterialPageRoute(builder: (context) => DefaultPage()),
-  //       );
-  //       break;
-  //   }
-  // }
+  void _navigateToNextPage(String title) {
+    // switch (title) {
+    //   case 'First Visit':
+    //     Navigator.push(
+    //       context,
+    //       MaterialPageRoute(builder: (context) => FirstVisitPage()),
+    //     );
+    //     break;
+    //   case 'Second Visit':
+    //     Navigator.push(
+    //       context,
+    //       MaterialPageRoute(builder: (context) => SecondVisitPage()),
+    //     );
+    //     break;
+    //   case 'Store Audit':
+    //     Navigator.push(
+    //       context,
+    //       MaterialPageRoute(builder: (context) => StoreAuditPage()),
+    //     );
+    //     break;
+    //   default:
+    //     // Default case to handle unexpected titles
+    //     Navigator.push(
+    //       context,
+    //       MaterialPageRoute(builder: (context) => DefaultPage()),
+    //     );
+    //     break;
+    // }
+  }
 
   // Widget to build option cards with onTap functionality
   Widget _buildOptionCard(String title, int count, Color color) {
     return InkWell(
-      //onTap: () => _navigateToNextPage(title), // Navigate to the corresponding page
+      onTap: () => _navigateToNextPage(title), // Navigate to the corresponding page
       splashColor: color.withOpacity(0.3), // Splash effect color
       borderRadius: BorderRadius.circular(10), // Rounded corners for the splash effect
       child: Card(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         elevation: 4,
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

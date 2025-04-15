@@ -340,6 +340,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                           if (purchaseController.text.trim().isNotEmpty &&
                               closingStockController.text.trim().isNotEmpty &&
                               mrpController.text.trim().isNotEmpty &&
+                              (double.tryParse(mrpController.text.trim())?.round() ?? 0) > 0 &&
                               saleValue >= 0 &&
                               wholesaleController.text.trim().isNotEmpty &&
                               avgSaleLastMonthController.text.trim().isNotEmpty &&
@@ -661,6 +662,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                           if (purchaseController.text.trim().isNotEmpty &&
                               closingStockController.text.trim().isNotEmpty &&
                               mrpController.text.trim().isNotEmpty &&
+                              (double.tryParse(mrpController.text.trim())?.round() ?? 0) > 0 &&
                               saleValue >= 0 &&
                               wholesaleController.text.trim().isNotEmpty &&
                               // (double.tryParse(chilledStockController.text.trim())?.round() ?? 0) >= 0 &&
