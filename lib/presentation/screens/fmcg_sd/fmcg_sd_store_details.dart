@@ -119,8 +119,8 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
         setState(() {
           locationStatus = "Latitude: ${position.latitude}, Longitude: ${position.longitude}";
         });
-
-        _checkIfInsideGeofence(position.latitude, position.longitude);
+        final prefs = await SharedPreferences.getInstance();
+        _checkIfInsideGeofence(position.latitude, position.longitude, prefs.getInt('geo_fence')!);
       } else {
         _showSnackBar("Location permission not granted.");
         setState(() {
@@ -142,7 +142,7 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
     );
   }
 
-  void _checkIfInsideGeofence(double userLatitude, double userLongitude) {
+  void _checkIfInsideGeofence(double userLatitude, double userLongitude, int geofenceRad) {
     _geoCode = widget.storeData['geo'];
 
     // Split the string by the comma to extract latitude and longitude
@@ -151,9 +151,9 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
     // Parse the latitude and longitude as doubles
     double geofenceLatitude = double.parse(coordinates[0]);
     double geofenceLongitude = double.parse(coordinates[1]);
-    const double geofenceRadius = 30; // 100 meters radius
+    double geofenceRadius = geofenceRad.toDouble(); // 100 meters radius
 
-    print('Latitude: $geofenceLatitude ....    $userLatitude');
+    print('Latitude: $geofenceLatitude ....    $userLatitude ..... $geofenceRadius');
     print('Longitude: $geofenceLongitude ..... $userLongitude');
 
     double distance = Geolocator.distanceBetween(

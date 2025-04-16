@@ -65,14 +65,14 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
     // ✅ Reload stored colors for each SKU item explicitly from editedItems
     Map<String, Color> restoredColors = {};
     for (var item in fetchedData) {
-      String itemName = item['item_description'].trim();
+      String productCode = item['product_code'];
       //print('color: check $itemName');
-      if (editedItems.contains(itemName)) {
-        int? colorValue = prefs.getInt("color_${widget.storeCode}_$itemName");
-        restoredColors[itemName] = (colorValue != null) ? Color(colorValue) : Colors.grey.shade300;
+      if (editedItems.contains(productCode)) {
+        int? colorValue = prefs.getInt("color_${widget.storeCode}_$productCode");
+        restoredColors[productCode] = (colorValue != null) ? Color(colorValue) : Colors.grey.shade300;
         //print('color: ok ${restoredColors[itemName]}');
       } else {
-        restoredColors[itemName] = Colors.grey.shade300;
+        restoredColors[productCode] = Colors.grey.shade300;
         //print('color: Not ok ${restoredColors[itemName]}');
       }
     }
@@ -348,15 +348,15 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                           // (double.tryParse(avgSaleLastMonthController.text.trim())?.round() ?? 0) >= 0 &&
                           // (double.tryParse(avgSaleLastToLastMonthController.text.trim())?.round() ?? 0) >= 0)
                           {
-                            _saveColorStatus(itemName, Colors.green.shade300);
+                            _saveColorStatus(skuItem['product_code'], Colors.green.shade300);
                           } else if (purchaseController.text.trim().isNotEmpty ||
                               closingStockController.text.trim().isNotEmpty ||
                               mrpController.text.trim().isNotEmpty ||
                               avgSaleLastMonthController.text.trim().isNotEmpty ||
                               avgSaleLastToLastMonthController.text.trim().isNotEmpty) {
-                            _saveColorStatus(itemName, Colors.yellow.shade300);
+                            _saveColorStatus(skuItem['product_code'], Colors.yellow.shade300);
                           } else {
-                            _saveColorStatus(itemName, Colors.grey.shade300);
+                            _saveColorStatus(skuItem['product_code'], Colors.grey.shade300);
                           }
 
                           ShowAlert.showSnackBar(context, 'SKU item updated successfully');
@@ -675,7 +675,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                               warmFaceController.text.trim().isNotEmpty &&
                               avgSaleLastToLastMonthController.text.trim().isNotEmpty &&
                               avgSaleLastToLastMonthController.text.trim().isNotEmpty) {
-                            _saveColorStatus(itemName, Colors.green.shade300);
+                            _saveColorStatus(skuItem['product_code'], Colors.green.shade300);
                           } else if (purchaseController.text.trim().isNotEmpty ||
                               closingStockController.text.trim().isNotEmpty ||
                               mrpController.text.trim().isNotEmpty ||
@@ -684,9 +684,9 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                               warmFaceController.text.trim().isNotEmpty ||
                               avgSaleLastMonthController.text.trim().isNotEmpty ||
                               avgSaleLastToLastMonthController.text.trim().isNotEmpty) {
-                            _saveColorStatus(itemName, Colors.yellow.shade300);
+                            _saveColorStatus(skuItem['product_code'], Colors.yellow.shade300);
                           } else {
-                            _saveColorStatus(itemName, Colors.grey.shade300);
+                            _saveColorStatus(skuItem['product_code'], Colors.grey.shade300);
                           }
 
                           ShowAlert.showSnackBar(context, 'SKU item updated successfully');
@@ -776,21 +776,21 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
     );
   }
 
-  Future<void> _saveColorStatus(String itemName, Color color) async {
+  Future<void> _saveColorStatus(String productCode, Color color) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt("color_${widget.storeCode}_${itemName.trim()}", color.value);
+    await prefs.setInt("color_${widget.storeCode}_$productCode", color.value);
 
     // Save item names list explicitly
     List<String> editedItems = prefs.getStringList('editedItems') ?? [];
-    if (!editedItems.contains(itemName)) {
-      editedItems.add(itemName);
+    if (!editedItems.contains(productCode)) {
+      editedItems.add(productCode);
       await prefs.setStringList('editedItems', editedItems);
     }
   }
 
   bool _allCardsGreen() {
     return filteredSkuData
-        .every((item) => skuItemColors.containsKey(item['item_description']) && skuItemColors[item['item_description']] == Colors.green.shade300);
+        .every((item) => skuItemColors.containsKey(item['product_code']) && skuItemColors[item['product_code']] == Colors.green.shade300);
   }
 
   @override
@@ -841,9 +841,10 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                         itemBuilder: (context, index) {
                           final skuItem = filteredSkuData[index];
                           String itemName = skuItem['item_description'];
+                          String productCode = skuItem['product_code'];
 
                           return Dismissible(
-                            key: Key(itemName), // Unique key for each item
+                            key: Key(productCode), // Unique key for each item
                             direction: DismissDirection.horizontal,
                             background: Container(
                               margin: const EdgeInsets.only(bottom: 8),
@@ -910,7 +911,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                               },
                               child: _buildSkuItem(
                                 itemName,
-                                skuItemColors[itemName] ?? Colors.grey.shade300,
+                                skuItemColors[productCode] ?? Colors.grey.shade300,
                               ),
                             ),
                           );

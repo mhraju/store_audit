@@ -30,7 +30,7 @@ class _LoginWidgetState extends State<LoginWidget> {
     await prefs.setString('auditorId', auditorId);
   }
 
-  Future<void> saveUserDataToPrefs(userData) async {
+  Future<void> saveUserDataToPrefs(userData, settings) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('code', userData['code']);
     await prefs.setString('name', userData['name']);
@@ -38,6 +38,7 @@ class _LoginWidgetState extends State<LoginWidget> {
     await prefs.setString('designation', userData['designation']);
     await prefs.setString('supervisor_name', userData['supervisor_name']);
     await prefs.setString('zone', userData['zone']);
+    await prefs.setInt('geo_fence', settings['geo_fance_radius']);
   }
 
   // Function to make an API call
@@ -84,7 +85,7 @@ class _LoginWidgetState extends State<LoginWidget> {
       if (responseData['status'] == 1) {
         // print('Loginn okkk');
         // Return the database path from the response
-        await saveUserDataToPrefs(responseData['data']);
+        await saveUserDataToPrefs(responseData['data'], responseData['settings']);
         await _fetchDatabasePath(auditorId);
       } else {
         ShowProgress.hideProgressDialog(context);

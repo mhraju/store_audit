@@ -394,6 +394,15 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
                   },
                   popupProps: const PopupProps.menu(
                     showSearchBox: true,
+                    searchFieldProps: TextFieldProps(
+                      decoration: InputDecoration(
+                        hintText: 'search by company name',
+                        hintStyle: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
                   ),
                   dropdownDecoratorProps: DropDownDecoratorProps(
                     dropdownSearchDecoration: _inputDecoration("Select Company"),
