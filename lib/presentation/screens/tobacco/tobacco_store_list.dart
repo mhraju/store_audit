@@ -1,26 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:store_audit/utility/show_alert.dart';
+
 import '../../../db/database_manager.dart';
 import '../../../utility/app_colors.dart';
-import 'fmcg_sd_store_details.dart';
+import '../../../utility/show_alert.dart';
+import '../fmcg_sd/fmcg_sd_store_details.dart';
 
-class FMCGSDStores extends StatefulWidget {
+class TobaccoStoreList extends StatefulWidget {
   final String dbPath;
   final String auditorId;
 
-  const FMCGSDStores({super.key, required this.dbPath, required this.auditorId});
+  const TobaccoStoreList({super.key, required this.dbPath, required this.auditorId});
 
   @override
-  State<FMCGSDStores> createState() => _FMCGSDStoresState();
+  State<TobaccoStoreList> createState() => _TobaccoStoreListState();
 }
 
-class _FMCGSDStoresState extends State<FMCGSDStores> with SingleTickerProviderStateMixin {
+class _TobaccoStoreListState extends State<TobaccoStoreList> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   List<Map<String, dynamic>> _data = [];
   final DatabaseManager dbManager = DatabaseManager();
   List<Map<String, dynamic>> _filteredData = [];
-  TextEditingController _searchController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
   bool isLoading = true; // Track loading state
   String _dbPath = '';
   String _auditorId = '';
@@ -68,7 +69,7 @@ class _FMCGSDStoresState extends State<FMCGSDStores> with SingleTickerProviderSt
         _filteredData = _data;
       } else {
         _filteredData = _data.where((item) {
-          return item['code'].toString().contains(query);
+          return item['name'].toLowerCase().contains(query.toLowerCase()) || item['code'].toString().contains(query);
         }).toList();
       }
     });
@@ -115,24 +116,23 @@ class _FMCGSDStoresState extends State<FMCGSDStores> with SingleTickerProviderSt
     return Column(
       children: [
         // Search Bar
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          child: TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'search by store code',
-              hintStyle: const TextStyle(fontSize: 14, color: Colors.grey),
-              prefixIcon: const Icon(Icons.search),
-              filled: true,
-              fillColor: const Color(0xFFEAEFF6),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-            ),
-            onChanged: (value) => _filterStores(value),
-          ),
-        ),
+        // Padding(
+        //   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        //   child: TextField(
+        //     controller: _searchController,
+        //     decoration: InputDecoration(
+        //       hintText: 'Search for Store',
+        //       prefixIcon: const Icon(Icons.search),
+        //       filled: true,
+        //       fillColor: Colors.grey[200],
+        //       border: OutlineInputBorder(
+        //         borderRadius: BorderRadius.circular(30),
+        //         borderSide: BorderSide.none,
+        //       ),
+        //     ),
+        //     onChanged: (value) => _filterStores(value),
+        //   ),
+        // ),
         // Tabs
         PreferredSize(
           preferredSize: const Size.fromHeight(100),

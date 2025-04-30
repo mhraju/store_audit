@@ -81,7 +81,8 @@ class _FmcgSdStoreAuditState extends State<FmcgSdStoreAudit> {
       return;
     }
 
-    prefs.setStringList('editedItems', []);
+    await prefs.setStringList('editedItems', []);
+    await prefs.setStringList('newEntry', []);
 
     await dbManager.closeOrUpdateFmcgSdStore(
       dbPath,

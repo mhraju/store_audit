@@ -9,6 +9,7 @@ import 'package:store_audit/db/database_manager.dart';
 import 'package:store_audit/presentation/screens/fmcg_sd/fmcg_sd_sku_list.dart';
 import 'package:store_audit/presentation/screens/fmcg_sd/fmcg_sd_store_list.dart';
 import 'package:store_audit/presentation/screens/login_screen.dart';
+import 'package:store_audit/presentation/screens/tobacco/tobacco.dart';
 import 'package:store_audit/service/file_upload_download.dart';
 import 'package:store_audit/utility/assets_path.dart';
 import 'package:store_audit/utility/show_alert.dart';
@@ -350,13 +351,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Navigator.push(
                   //   context,
                   //   MaterialPageRoute(
-                  //     builder: (context) => FmcgSdSkuList(
-                  //         dbPath: widget.dbPath,
-                  //         storeCode: 'ZQY5FM',
-                  //         auditorId: widget.auditorId,
-                  //         option: 'Test',
-                  //         shortCode: 'RA',
-                  //         storeName: 'Sadek Departmental Store'),
+                  //     builder: (context) => const TobaccoAuditScreen(),
                   //   ),
                   // );
 
@@ -388,37 +383,36 @@ class _HomeScreenState extends State<HomeScreen> {
     required String label,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 150,
-        height: 120,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.3),
-              spreadRadius: 2,
-              blurRadius: 10,
-              offset: const Offset(2, 3),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 40, color: Colors.blue),
-            const SizedBox(height: 10),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.blue[900],
-                fontWeight: FontWeight.w500,
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(15),
+      elevation: 3,
+      shadowColor: Colors.grey.withOpacity(0.3),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(15),
+        splashColor: Colors.blue.withOpacity(0.3), // Add your splash color here
+        child: Container(
+          width: 150,
+          height: 120,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 40, color: Colors.blue),
+              const SizedBox(height: 10),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.blue[900],
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

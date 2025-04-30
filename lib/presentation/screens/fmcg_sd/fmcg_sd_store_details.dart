@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img; // Import the image package
@@ -145,16 +146,12 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
   void _checkIfInsideGeofence(double userLatitude, double userLongitude, int geofenceRad) {
     _geoCode = widget.storeData['geo'];
 
-    // Split the string by the comma to extract latitude and longitude
+    // Split the string by comma
     List<String> coordinates = _geoCode.split(',');
 
-    // Parse the latitude and longitude as doubles
     double geofenceLatitude = double.parse(coordinates[0]);
     double geofenceLongitude = double.parse(coordinates[1]);
-    double geofenceRadius = geofenceRad.toDouble(); // 100 meters radius
-
-    print('Latitude: $geofenceLatitude ....    $userLatitude ..... $geofenceRadius');
-    print('Longitude: $geofenceLongitude ..... $userLongitude');
+    double geofenceRadius = geofenceRad.toDouble(); // e.g. 100 meters
 
     double distance = Geolocator.distanceBetween(
       userLatitude,
@@ -163,13 +160,22 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
       geofenceLongitude,
     );
 
+    double outsideDistance = distance - geofenceRadius;
+
     setState(() {
       isInsideGeofence = distance <= geofenceRadius;
     });
 
+    print('Distance from center: ${distance.toStringAsFixed(2)} meters');
+    print('Outside geofence by: ${outsideDistance > 0 ? outsideDistance.toStringAsFixed(2) : "0.00"} meters');
+
     if (!isInsideGeofence) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("You are outside the geofence area. Please move inside the geofence to proceed.")),
+        SnackBar(
+          content: Text(
+            "You are ${outsideDistance.toStringAsFixed(2)} meters outside the geofence.",
+          ),
+        ),
       );
     }
   }
@@ -382,6 +388,7 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
                                 option: _option,
                                 shortCode: widget.shortCode,
                                 storeName: _storeName,
+                                period: widget.storeData['period'],
                               ),
                             ),
                           );

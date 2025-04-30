@@ -23,6 +23,7 @@ class FmcgSdNewIntro extends StatefulWidget {
   final String option;
   final String shortCode;
   final String storeName;
+  final String period;
   const FmcgSdNewIntro({
     super.key,
     required this.dbPath,
@@ -31,6 +32,7 @@ class FmcgSdNewIntro extends StatefulWidget {
     required this.option,
     required this.shortCode,
     required this.storeName,
+    required this.period,
   });
 
   @override
@@ -214,12 +216,13 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
         //print("✅ Final saved images: $savedPaths");
 
         String productCode = generateSecureSixDigitProductCode();
+        //productCode = 'temp_intro_$productCode';
 
         await dbManager.insertFMcgSdProductIntro(
           widget.dbPath,
           widget.auditorId,
           selectedOption!,
-          productCode,
+          'temp_${widget.auditorId}_$productCode',
           selectedCategoryName!,
           selectedCompany!,
           countryController.text.trim(),
@@ -240,14 +243,14 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
           widget.dbPath,
           widget.storeCode,
           widget.auditorId,
-          productCode,
+          'temp_${widget.auditorId}_$productCode',
         );
 
         await dbManager.insertFMcgSdProducts(
           widget.dbPath,
           widget.auditorId,
           selectedOption!,
-          productCode,
+          'temp_${widget.auditorId}_$productCode',
           selectedCategoryCode!,
           selectedCategoryName!,
           selectedCompany!,
@@ -619,6 +622,7 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
                           option: widget.option,
                           shortCode: widget.shortCode,
                           storeName: widget.storeName,
+                          period: widget.period,
                         ),
                       ),
                     );
@@ -648,6 +652,7 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
                           option: widget.option,
                           shortCode: widget.shortCode,
                           storeName: widget.storeName,
+                          period: widget.period,
                         ),
                       ),
                     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:store_audit/presentation/screens/fmcg_sd/fmcg_sd_new_intro.dart';
 import 'package:store_audit/presentation/screens/fmcg_sd/fmcg_sd_sku_list.dart';
 
@@ -13,6 +14,7 @@ class FmcgSdNewEntry extends StatefulWidget {
   final String option;
   final String shortCode;
   final String storeName;
+  final String period;
   const FmcgSdNewEntry({
     super.key,
     required this.dbPath,
@@ -21,6 +23,7 @@ class FmcgSdNewEntry extends StatefulWidget {
     required this.option,
     required this.shortCode,
     required this.storeName,
+    required this.period,
   });
 
   @override
@@ -161,6 +164,11 @@ class _FmcgSdNewEntryState extends State<FmcgSdNewEntry> {
                               skuItem['code'],
                             );
 
+                            final prefs = await SharedPreferences.getInstance();
+                            List<String> savedPaths = prefs.getStringList('newEntry') ?? [];
+                            savedPaths.add(skuItem['code']);
+                            await prefs.setStringList('newEntry', savedPaths);
+
                             // await dbManager.insertOrUpdateFmcgSdSkuDetails(
                             //   widget.dbPath,
                             //   widget.storeCode,
@@ -201,22 +209,6 @@ class _FmcgSdNewEntryState extends State<FmcgSdNewEntry> {
     );
   }
 
-  Widget _buildNonEditableField(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: TextField(
-        controller: TextEditingController(text: value),
-        readOnly: true,
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-          filled: true,
-          fillColor: Colors.grey.shade200,
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -244,6 +236,7 @@ class _FmcgSdNewEntryState extends State<FmcgSdNewEntry> {
                 fillColor: const Color(0xFFEAEFF6),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
                 ),
               ),
             ),
@@ -258,23 +251,25 @@ class _FmcgSdNewEntryState extends State<FmcgSdNewEntry> {
                           "No Data Found",
                           style: TextStyle(
                             fontSize: 14,
-                            //fontWeight: FontWeight.bold,
                             color: Colors.grey,
                           ),
                         ),
                       )
-                    : ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        itemCount: filteredSkuData.length,
-                        itemBuilder: (context, index) {
-                          final skuItem = filteredSkuData[index];
-                          return GestureDetector(
-                            onTap: () => _showBottomSheet(skuItem),
-                            child: _buildSkuItem(
-                              skuItem['item_description'],
-                            ),
-                          );
-                        },
+                    : RefreshIndicator(
+                        onRefresh: _fetchSkuData,
+                        child: ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                          itemCount: filteredSkuData.length,
+                          itemBuilder: (context, index) {
+                            final skuItem = filteredSkuData[index];
+                            return GestureDetector(
+                              onTap: () => _showBottomSheet(skuItem),
+                              child: _buildSkuItem(
+                                skuItem['item_description'],
+                              ),
+                            );
+                          },
+                        ),
                       ),
           ),
 
@@ -305,6 +300,7 @@ class _FmcgSdNewEntryState extends State<FmcgSdNewEntry> {
                               option: widget.option,
                               shortCode: widget.shortCode,
                               storeName: widget.storeName,
+                              period: widget.period,
                             ),
                           ),
                         );
@@ -360,6 +356,7 @@ class _FmcgSdNewEntryState extends State<FmcgSdNewEntry> {
           option: widget.option,
           shortCode: widget.shortCode,
           storeName: widget.storeName,
+          period: widget.period,
         ),
       ),
     );

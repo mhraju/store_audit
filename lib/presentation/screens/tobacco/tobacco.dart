@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../service/connectivity.dart';
-import '../../utility/app_colors.dart';
-import '../../utility/assets_path.dart';
+import '../../../service/connectivity.dart';
+import '../../../utility/app_colors.dart';
+import '../../../utility/assets_path.dart';
 
 class TobaccoAuditScreen extends StatefulWidget {
   const TobaccoAuditScreen({super.key});
@@ -103,7 +103,7 @@ class _TobaccoAuditScreenState extends State<TobaccoAuditScreen> {
   Widget _buildOptionCard(String title, int count, Color color) {
     return InkWell(
       onTap: () => _navigateToNextPage(title), // Navigate to the corresponding page
-      splashColor: color.withOpacity(0.3), // Splash effect color
+      splashColor: Colors.blue.withOpacity(0.3), // Splash effect color
       borderRadius: BorderRadius.circular(10), // Rounded corners for the splash effect
       child: Card(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -116,7 +116,7 @@ class _TobaccoAuditScreenState extends State<TobaccoAuditScreen> {
               Text(
                 title,
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: color,
                 ),
@@ -127,7 +127,7 @@ class _TobaccoAuditScreenState extends State<TobaccoAuditScreen> {
                   '$count',
                   style: TextStyle(
                     color: color,
-                    fontSize: 16,
+                    fontSize: 17,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -146,17 +146,17 @@ class _TobaccoAuditScreenState extends State<TobaccoAuditScreen> {
         backgroundColor: AppColors.appBarColor, // Use your custom color
         elevation: 0,
         title: const Text('Tobacco Audit'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.sync, color: Colors.black),
-            onPressed: _syncDatabase,
-          ),
-        ],
+        // actions: [
+        //   IconButton(
+        //     icon: const Icon(Icons.sync, color: Colors.black),
+        //     onPressed: _syncDatabase,
+        //   ),
+        // ],
       ),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: _isLoading
-            ? Center(child: CircularProgressIndicator())
+            ? const Center(child: CircularProgressIndicator())
             : Column(
                 children: [
                   const SizedBox(height: 56),
@@ -180,9 +180,9 @@ class _TobaccoAuditScreenState extends State<TobaccoAuditScreen> {
                   ),
                   const SizedBox(height: 36),
                   _buildOptionCard('First Visit', 20, Colors.blue.shade900),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   _buildOptionCard('Second Visit', 40, Colors.blue.shade900),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   _buildOptionCard('Store Audit', 40, Colors.grey),
                 ],
               ),

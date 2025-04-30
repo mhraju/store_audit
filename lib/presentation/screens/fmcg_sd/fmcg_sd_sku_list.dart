@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:math_expressions/math_expressions.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:store_audit/presentation/screens/fmcg_sd/fmcg_sd_new_entry.dart';
 import 'package:store_audit/presentation/screens/fmcg_sd/fmcg_sd_store_audit.dart';
@@ -14,6 +15,7 @@ class FmcgSdSkuList extends StatefulWidget {
   final String option;
   final String shortCode;
   final String storeName;
+  final String period;
   const FmcgSdSkuList({
     super.key,
     required this.dbPath,
@@ -22,6 +24,7 @@ class FmcgSdSkuList extends StatefulWidget {
     required this.option,
     required this.shortCode,
     required this.storeName,
+    required this.period,
   });
 
   @override
@@ -35,6 +38,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
   TextEditingController searchController = TextEditingController(); // Store field updates
   final DatabaseManager dbManager = DatabaseManager();
   Map<String, Color> skuItemColors = {}; // ✅ Store colors for each SKU item
+  late List<String> savedSkus;
 
   @override
   void initState() {
@@ -76,6 +80,8 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
         //print('color: Not ok ${restoredColors[itemName]}');
       }
     }
+
+    savedSkus = prefs.getStringList('newEntry') ?? [];
 
     setState(() {
       skuData = fetchedData;
@@ -171,6 +177,67 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
       }
     }
 
+    void showValueEntryPopup(BuildContext context, String type) {
+      final TextEditingController inputController = TextEditingController();
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: const Text("Enter value",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+              )),
+          content: TextField(
+            controller: inputController,
+            keyboardType: TextInputType.text,
+            decoration: InputDecoration(
+              hintText: "e.g. 42+12-5+2",
+              hintStyle: const TextStyle(
+                color: Colors.grey,
+                fontSize: 14,
+              ),
+              filled: true,
+              fillColor: Colors.grey.shade200,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                try {
+                  // Evaluate expression
+                  Parser p = Parser();
+                  Expression exp = p.parse(inputController.text);
+                  double result = exp.evaluate(EvaluationType.REAL, ContextModel());
+
+                  // Add to previous value
+                  if (type == 'cs') {
+                    double prevValue = double.tryParse(closingStockController.text) ?? 0;
+                    double total = prevValue + result;
+                    closingStockController.text = total.toStringAsFixed(0);
+                  } else {
+                    double prevValue = double.tryParse(purchaseController.text) ?? 0;
+                    double total = prevValue + result;
+                    purchaseController.text = total.toStringAsFixed(0);
+                  }
+                  Navigator.pop(context);
+                  updateSaleValue();
+                } catch (e) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Invalid expression")),
+                  );
+                }
+              },
+              child: const Text("Add"),
+            )
+          ],
+        ),
+      );
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -210,10 +277,23 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                     ),
 
                     // Editable Fields
-                    _buildEditableField('Purchase', skuItem['purchase']?.toString() ?? '', itemName, skuItem,
-                        controller: purchaseController, onChanged: updateSaleValue),
-                    _buildEditableField('Closing Stock (CS)', skuItem['closestock']?.toString() ?? '', itemName, skuItem,
-                        controller: closingStockController, onChanged: updateSaleValue),
+                    //onChanged: updateSaleValue
+                    _buildEditableField(
+                      'Purchase',
+                      skuItem['purchase']?.toString() ?? '',
+                      itemName,
+                      skuItem,
+                      controller: purchaseController,
+                      onChanged: updateSaleValue,
+                    ),
+                    _buildEditableField(
+                      'Closing Stock (CS)',
+                      skuItem['closestock']?.toString() ?? '',
+                      itemName,
+                      skuItem,
+                      controller: closingStockController,
+                      onChanged: updateSaleValue,
+                    ),
 
                     // Sale - Non Editable
                     _buildNonEditableField('Sale', saleValue.toString()),
@@ -335,19 +415,20 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                                 ? (double.tryParse(avgSaleLastToLastMonthController.text.trim())?.round() ?? 0).toString()
                                 : '',
                             skuItem['index'],
+                            widget.period,
                           );
 
-                          if (purchaseController.text.trim().isNotEmpty &&
+                          final closingStock = double.tryParse(closingStockController.text.trim())?.round() ?? 0;
+                          final mrp = double.tryParse(mrpController.text.trim())?.round() ?? 0;
+
+                          if ((closingStock >= 0) &&
+                              purchaseController.text.trim().isNotEmpty &&
                               closingStockController.text.trim().isNotEmpty &&
-                              mrpController.text.trim().isNotEmpty &&
-                              (double.tryParse(mrpController.text.trim())?.round() ?? 0) > 0 &&
+                              mrp >= (closingStock > 0 ? 1 : 0) &&
                               saleValue >= 0 &&
                               wholesaleController.text.trim().isNotEmpty &&
                               avgSaleLastMonthController.text.trim().isNotEmpty &&
-                              avgSaleLastToLastMonthController.text.trim().isNotEmpty)
-                          // (double.tryParse(avgSaleLastMonthController.text.trim())?.round() ?? 0) >= 0 &&
-                          // (double.tryParse(avgSaleLastToLastMonthController.text.trim())?.round() ?? 0) >= 0)
-                          {
+                              avgSaleLastToLastMonthController.text.trim().isNotEmpty) {
                             _saveColorStatus(skuItem['product_code'], Colors.green.shade300);
                           } else if (purchaseController.text.trim().isNotEmpty ||
                               closingStockController.text.trim().isNotEmpty ||
@@ -447,6 +528,67 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
       }
     }
 
+    void showValueEntryPopup(BuildContext context, String type) {
+      final TextEditingController inputController = TextEditingController();
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: const Text("Enter value",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+              )),
+          content: TextField(
+            controller: inputController,
+            keyboardType: TextInputType.text,
+            decoration: InputDecoration(
+              hintText: "e.g. 42+12-5+2",
+              hintStyle: const TextStyle(
+                color: Colors.grey,
+                fontSize: 14,
+              ),
+              filled: true,
+              fillColor: Colors.grey.shade200,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                try {
+                  // Evaluate expression
+                  Parser p = Parser();
+                  Expression exp = p.parse(inputController.text);
+                  double result = exp.evaluate(EvaluationType.REAL, ContextModel());
+
+                  // Add to previous value
+                  if (type == 'cs') {
+                    double prevValue = double.tryParse(closingStockController.text) ?? 0;
+                    double total = prevValue + result;
+                    closingStockController.text = total.toStringAsFixed(0);
+                  } else {
+                    double prevValue = double.tryParse(purchaseController.text) ?? 0;
+                    double total = prevValue + result;
+                    purchaseController.text = total.toStringAsFixed(0);
+                  }
+                  Navigator.pop(context);
+                  updateSaleValue();
+                } catch (e) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Invalid expression")),
+                  );
+                }
+              },
+              child: const Text("Add"),
+            )
+          ],
+        ),
+      );
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -486,10 +628,23 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                     ),
 
                     // Editable Fields
-                    _buildEditableField('Purchase', skuItem['purchase']?.toString() ?? '', itemName, skuItem,
-                        controller: purchaseController, onChanged: updateSaleValue),
-                    _buildEditableField('Closing Stock (CS)', skuItem['closestock']?.toString() ?? '', itemName, skuItem,
-                        controller: closingStockController, onChanged: updateSaleValue),
+                    // onTap: () => showValueEntryPopup(context, 'ps'),
+                    _buildEditableField(
+                      'Purchase',
+                      skuItem['purchase']?.toString() ?? '',
+                      itemName,
+                      skuItem,
+                      controller: purchaseController,
+                      onChanged: updateSaleValue,
+                    ),
+                    _buildEditableField(
+                      'Closing Stock (CS)',
+                      skuItem['closestock']?.toString() ?? '',
+                      itemName,
+                      skuItem,
+                      controller: closingStockController,
+                      onChanged: updateSaleValue,
+                    ),
 
                     // Sale - Non Editable
                     _buildNonEditableField('Sale', saleValue.toString()),
@@ -657,23 +812,22 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                                 ? (double.tryParse(avgSaleLastToLastMonthController.text.trim())?.round() ?? 0).toString()
                                 : '',
                             skuItem['index'],
+                            widget.period,
                           );
 
-                          if (purchaseController.text.trim().isNotEmpty &&
+                          final closingStock = double.tryParse(closingStockController.text.trim())?.round() ?? 0;
+                          final mrp = double.tryParse(mrpController.text.trim())?.round() ?? 0;
+
+                          if ((closingStock >= 0) &&
+                              purchaseController.text.trim().isNotEmpty &&
                               closingStockController.text.trim().isNotEmpty &&
-                              mrpController.text.trim().isNotEmpty &&
-                              (double.tryParse(mrpController.text.trim())?.round() ?? 0) > 0 &&
+                              mrp >= (closingStock > 0 ? 1 : 0) &&
                               saleValue >= 0 &&
                               wholesaleController.text.trim().isNotEmpty &&
-                              // (double.tryParse(chilledStockController.text.trim())?.round() ?? 0) >= 0 &&
-                              // (double.tryParse(chilledFaceController.text.trim())?.round() ?? 0) >= 0 &&
-                              // (double.tryParse(warmFaceController.text.trim())?.round() ?? 0) >= 0 &&
-                              // (double.tryParse(avgSaleLastMonthController.text.trim())?.round() ?? 0) >= 0 &&
-                              // (double.tryParse(avgSaleLastToLastMonthController.text.trim())?.round() ?? 0) >= 0
                               chilledStockController.text.trim().isNotEmpty &&
                               chilledFaceController.text.trim().isNotEmpty &&
                               warmFaceController.text.trim().isNotEmpty &&
-                              avgSaleLastToLastMonthController.text.trim().isNotEmpty &&
+                              avgSaleLastMonthController.text.trim().isNotEmpty &&
                               avgSaleLastToLastMonthController.text.trim().isNotEmpty) {
                             _saveColorStatus(skuItem['product_code'], Colors.green.shade300);
                           } else if (purchaseController.text.trim().isNotEmpty ||
@@ -743,7 +897,15 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
     ).then((value) => value ?? false); // Ensure `false` if dialog is dismissed without choice
   }
 
-  Widget _buildEditableField(String label, String value, String itemName, skuItem, {TextEditingController? controller, Function()? onChanged}) {
+  Widget _buildEditableField(
+    String label,
+    String value,
+    String itemName,
+    skuItem, {
+    TextEditingController? controller,
+    Function()? onChanged,
+    Function()? onTap,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: TextField(
@@ -751,6 +913,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
         onChanged: (text) {
           onChanged?.call();
         },
+        onTap: onTap,
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
@@ -820,6 +983,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                 fillColor: const Color(0xFFEAEFF6),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
                 ),
               ),
             ),
@@ -869,30 +1033,40 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                                 }
                                 return false; // Prevent actual dismiss
                               } else if (direction == DismissDirection.endToStart) {
-                                bool confirmDelete = await showDialog(
-                                  context: context,
-                                  builder: (ctx) => AlertDialog(
-                                    title: const Row(
-                                      children: [
-                                        Icon(Icons.warning_amber_rounded, color: Colors.red, size: 30),
-                                        SizedBox(width: 10),
-                                        Text("Delete SKU Item", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                                      ],
-                                    ),
-                                    content: const Text("Are you sure you want to delete this Sku Item?"),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.of(ctx).pop(false),
-                                        child: const Text("Cancel"),
+                                if (!(productCode.contains('temp') || savedSkus.contains(productCode))) {
+                                  ShowAlert.showSnackBar(context, "You can't delete this SKU item");
+                                  return false; // Do not show dialog or dismiss
+                                }
+
+                                bool confirmDelete = await showDialog<bool>(
+                                      context: context,
+                                      builder: (ctx) => AlertDialog(
+                                        title: const Row(
+                                          children: [
+                                            Icon(Icons.warning_amber_rounded, color: Colors.red, size: 30),
+                                            SizedBox(width: 10),
+                                            Text(
+                                              "Delete SKU Item",
+                                              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                                            ),
+                                          ],
+                                        ),
+                                        content: const Text("Are you sure you want to delete this SKU item?"),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.of(ctx).pop(false),
+                                            child: const Text("Cancel"),
+                                          ),
+                                          TextButton(
+                                            onPressed: () => Navigator.of(ctx).pop(true),
+                                            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+                                          ),
+                                        ],
                                       ),
-                                      TextButton(
-                                        onPressed: () => Navigator.of(ctx).pop(true),
-                                        child: const Text("Delete", style: TextStyle(color: Colors.red)),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                                return confirmDelete; // Delete only if confirmed
+                                    ) ??
+                                    false;
+
+                                return confirmDelete; // Dismiss only if confirmed
                               }
                               return false;
                             },
@@ -946,6 +1120,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                                     option: widget.option,
                                     shortCode: widget.shortCode,
                                     storeName: widget.storeName,
+                                    period: widget.period,
                                   )),
                         ).then((value) {
                           _fetchSkuData(); // Call method to refresh database data

@@ -73,7 +73,7 @@ class DatabaseManager {
       FROM stores s
       JOIN store_schedules ss
       ON s.code = ss.store_code
-      WHERE s.status = 1 AND ss.employee_code = ?
+      WHERE s.status = 1 AND ss.`index` = 'FMCG' AND ss.employee_code = ?
       ORDER BY s.status, ss.date ASC;
     ''', [auditorId]);
 
@@ -257,6 +257,7 @@ class DatabaseManager {
     String avgSaleLastMonth,
     String avgSaleLastToLastMonth,
     String panel,
+    String period,
   ) async {
     try {
       final Database db = await openDatabase(dbPath);
@@ -275,6 +276,7 @@ class DatabaseManager {
         await db.update(
           'fmcg_store_updates',
           {
+            'period': period,
             'date': DateTime.now().toLocal().toIso8601String().substring(0, 10), // Ensures YYYY-MM-DD format
             'panel': panel,
             'openstock': openStock,
@@ -302,6 +304,7 @@ class DatabaseManager {
         await db.insert(
           'fmcg_store_updates',
           {
+            'period': period,
             'date': DateTime.now().toLocal().toIso8601String().substring(0, 10),
             'panel': panel,
             'store_code': storeCode,
@@ -350,6 +353,7 @@ class DatabaseManager {
     String avgSaleLastMonth,
     String avgSaleLastToLastMonth,
     String panel,
+    String period,
   ) async {
     try {
       final Database db = await openDatabase(dbPath);
@@ -368,6 +372,7 @@ class DatabaseManager {
         await db.update(
           'fmcg_store_updates',
           {
+            'period': period,
             'date': DateTime.now().toLocal().toIso8601String().substring(0, 10), // Ensures YYYY-MM-DD format
             'panel': panel,
             'openstock': openStock,
@@ -398,6 +403,7 @@ class DatabaseManager {
         await db.insert(
           'fmcg_store_updates',
           {
+            'period': period,
             'date': DateTime.now().toLocal().toIso8601String().substring(0, 10),
             'panel': panel,
             'store_code': storeCode,
@@ -585,8 +591,8 @@ class DatabaseManager {
       await db.close();
     } catch (e) {
       // Handle errors
-      print('Error updating new entry: $e');
-      throw Exception('Failed to update new entry: $e');
+      print('Error updating new intro: $e');
+      throw Exception('Failed to update new intro: $e');
     }
   }
 
