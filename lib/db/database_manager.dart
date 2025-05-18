@@ -42,7 +42,7 @@ class DatabaseManager {
         await dbFile.writeAsBytes(response.bodyBytes);
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('dbPath', dbPath);
-        print('Database downloaded and saved at $dbPath');
+        //print('Database downloaded and saved at $dbPath');
         return dbPath;
       } else {
         throw Exception('Failed to download database. HTTP status: ${response.statusCode}');
@@ -57,7 +57,7 @@ class DatabaseManager {
     try {
       // Open the database
       final Database db = await openDatabase(dbPath);
-      print('Database loaded successfully from $dbPath');
+      //print('Database loaded successfully from $dbPath');
       return db;
     } catch (e) {
       throw Exception('Error loading database: $e');
@@ -80,7 +80,7 @@ class DatabaseManager {
       await db.close();
       return storesWithSchedules;
     } catch (e) {
-      print('Failed to load stores and schedules: $e');
+      //print('Failed to load stores and schedules: $e');
       return []; // Return empty list on failure
     }
   }
@@ -95,6 +95,7 @@ class DatabaseManager {
     String detailAddress,
     String landmark,
     String store_photo,
+    String newGeo,
   ) async {
     try {
       // Open the database
@@ -109,6 +110,7 @@ class DatabaseManager {
           'address': detailAddress,
           'land_mark': landmark,
           'store_photo': store_photo,
+          'new_geo': newGeo,
           'updated_by': auditorId,
           'updated_at': DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
         },
@@ -116,13 +118,13 @@ class DatabaseManager {
         whereArgs: [storeCode],
       );
 
-      print('Store details updated successfully for store_code: $storeCode');
+      //print('Store details updated successfully for store_code: $storeCode');
 
       // Close the database
       await db.close();
     } catch (e) {
       // Handle errors
-      print('Error updating store details: $e');
+      //print('Error updating store details: $e');
       throw Exception('Failed to update store details: $e');
     }
   }
@@ -155,7 +157,7 @@ class DatabaseManager {
         where: 'code COLLATE NOCASE = ?', // Ensures case-insensitive matching
         whereArgs: [storeCode],
       );
-      print('Store table updated successfully for store_code: $storeCode');
+      //print('Store table updated successfully for store_code: $storeCode');
 
       // Update the store schedule
       await db.update(
@@ -169,78 +171,181 @@ class DatabaseManager {
         where: 'store_code COLLATE NOCASE = ?', // Ensures case-insensitive matching
         whereArgs: [storeCode],
       );
-      print('Store Schedules table updated successfully for store_code: $storeCode');
+      //print('Store Schedules table updated successfully for store_code: $storeCode');
 
       // Close the database
       await db.close();
     } catch (e) {
       // Handle errors
-      print('Error updating store details: $e');
+      //print('Error updating store details: $e');
       throw Exception('Failed to update store details: $e');
     }
   }
 
-  // Call this func to get Store SKU List
-  Future<List<Map<String, dynamic>>> loadFMcgSdStoreSkuList(String dbPath, String storeCode) async {
+  Future<List<Map<String, dynamic>>> loadFMcgSdStoreSkuList(String dbPath, String storeCode, String period) async {
     try {
-      print('storecode: $storeCode');
+      //print('period: $period');
+
+      // Get current device month as 'YYYY-MM'
+      DateTime now = DateTime.now();
+      String currentMonthStr = "${now.year}-${now.month.toString().padLeft(2, '0')}";
+
+      // Parse period value
+      int year = int.parse(period.substring(0, 4));
+      int month = int.parse(period.substring(4, 6));
+
+      // Previous 1 month
+      int prevMonth = month == 1 ? 12 : month - 1;
+      int prevMonthYear = month == 1 ? year - 1 : year;
+      String prevMonthStr = "$prevMonthYear-${prevMonth.toString().padLeft(2, '0')}";
+
+      // Previous 2 months
+      int prev2Month = (month <= 2) ? (12 + month - 2) : (month - 2);
+      int prev2MonthYear = (month == 1) ? year - 1 : (month == 2 ? year - 1 : year);
+      String prev2MonthStr = "$prev2MonthYear-${prev2Month.toString().padLeft(2, '0')}";
+
       final db = await loadDatabase(dbPath);
 
       final storeProducts = await db.rawQuery('''
-  SELECT 
-    sp.*, 
-    p.*, 
+    SELECT
+      sp.*,
+      p.*,
 
-    -- ✅ Keep current month fields, show '0' or empty if missing
-    COALESCE(fsu.id, 0) AS fmcg_update_id,
-    COALESCE(fsu.date, '') AS update_date,
-    COALESCE(fsu.panel, '') AS panel,
-    COALESCE(fsu.employee_code, '') AS employee_code,
-    COALESCE(fsu.openstock, '') AS openstock,
-    COALESCE(fsu.purchase, '') AS purchase,
-    COALESCE(fsu.closestock, '') AS closestock,
-    COALESCE(fsu.mrp, '') AS mrp,
-    COALESCE(fsu.sale, '') AS sale,
-    COALESCE(fsu.chilled_stock, '') AS chilled_stock,
-    COALESCE(fsu.chilled_face, '') AS chilled_face,
-    COALESCE(fsu.warm_face, '') AS warm_face,
-    COALESCE(fsu.wholesale, '') AS wholesale,
-    COALESCE(fsu.sale_last_month, '') AS sale_last_month,
-    COALESCE(fsu.sale_last_to_last_month, '') AS sale_last_to_last_month,
-    COALESCE(fsu.status, '') AS status,
-    COALESCE(fsu.audit_type, '') AS audit_type,
+      -- Current month data (from device date)
+      COALESCE(fsu.id, 0) AS fmcg_update_id,
+      COALESCE(fsu.date, '') AS update_date,
+      COALESCE(fsu.panel, '') AS panel,
+      COALESCE(fsu.employee_code, '') AS employee_code,
+      COALESCE(fsu.openstock, '') AS openstock,
+      COALESCE(fsu.mrp, '') AS mrp,
+      COALESCE(fsu.purchase, '') AS purchase,
+      COALESCE(fsu.closestock, '') AS closestock,
+      COALESCE(fsu.sale, '') AS sale,
+      COALESCE(fsu.chilled_stock, '') AS chilled_stock,
+      COALESCE(fsu.chilled_face, '') AS chilled_face,
+      COALESCE(fsu.warm_face, '') AS warm_face,
+      COALESCE(fsu.wholesale, '') AS wholesale,
+      COALESCE(fsu.sale_last_month, '') AS sale_last_month,
+      COALESCE(fsu.sale_last_to_last_month, '') AS sale_last_to_last_month,
+      COALESCE(fsu.status, '') AS status,
+      COALESCE(fsu.audit_type, '') AS audit_type,
 
-    -- ✅ Always keep last month's `mrp` and `closestock` separately
-    COALESCE(prev_fsu.mrp, '') AS prev_mrp,
-    COALESCE(prev_fsu.closestock, '') AS prev_closestock
+      -- Fallback chain: current period, then 1 month back, then 2 months
+      CASE
+        WHEN fsu_period.closestock IS NOT NULL AND TRIM(fsu_period.closestock) != '' THEN fsu_period.closestock
+        WHEN prev1.closestock IS NOT NULL AND TRIM(prev1.closestock) != '' THEN prev1.closestock
+        WHEN prev2.closestock IS NOT NULL AND TRIM(prev2.closestock) != '' THEN prev2.closestock
+        ELSE ''
+      END AS prev_closestock,
 
-  FROM store_products sp
-  JOIN products p ON sp.product_code = p.code
+      CASE
+        WHEN fsu_period.mrp IS NOT NULL AND TRIM(fsu_period.mrp) != '' THEN fsu_period.mrp
+        WHEN prev1.mrp IS NOT NULL AND TRIM(prev1.mrp) != '' THEN prev1.mrp
+        WHEN prev2.mrp IS NOT NULL AND TRIM(prev2.mrp) != '' THEN prev2.mrp
+        ELSE ''
+      END AS prev_mrp
 
-  -- ✅ Current month data from 'fmcg_store_updates'
-  LEFT JOIN fmcg_store_updates fsu 
-    ON sp.store_code = fsu.store_code 
-    AND sp.product_code = fsu.product_code
-    AND substr(fsu.date, 1, 7) = strftime('%Y-%m', 'now')  -- Current month
+    FROM store_products sp
+    JOIN products p ON sp.product_code = p.code
 
-  -- ✅ Last month’s data from 'fmcg_store_updates' (always fetched separately)
-  LEFT JOIN fmcg_store_updates prev_fsu
-    ON sp.store_code = prev_fsu.store_code 
-    AND sp.product_code = prev_fsu.product_code
-    AND substr(prev_fsu.date, 1, 7) = strftime('%Y-%m', 'now', '-1 month')  -- Last month
+    -- Current month based on device date
+    LEFT JOIN fmcg_store_updates fsu
+      ON sp.store_code = fsu.store_code
+      AND sp.product_code = fsu.product_code
+      AND substr(fsu.date, 1, 7) = ?
 
-  WHERE sp.store_code = ? 
-  ORDER BY p.category_name, p.brand ASC;
-''', [storeCode]);
+    -- Period-based data for openstock and mrp
+    LEFT JOIN fmcg_store_updates fsu_period
+      ON sp.store_code = fsu_period.store_code
+      AND sp.product_code = fsu_period.product_code
+      AND fsu_period.period = ?
 
-      print('Length: ${storeProducts.length} _ $storeProducts');
+    -- 1 month back
+    LEFT JOIN fmcg_store_updates prev1
+      ON sp.store_code = prev1.store_code
+      AND sp.product_code = prev1.product_code
+      AND substr(prev1.date, 1, 7) = ?
+
+    -- 2 months back
+    LEFT JOIN fmcg_store_updates prev2
+      ON sp.store_code = prev2.store_code
+      AND sp.product_code = prev2.product_code
+      AND substr(prev2.date, 1, 7) = ?
+
+    WHERE sp.store_code = ?
+    ORDER BY p.category_name, p.brand ASC;
+  ''', [currentMonthStr, period, prevMonthStr, prev2MonthStr, storeCode]);
+
+      //print('Length: ${storeProducts.length} _ $storeProducts');
       await db.close();
       return storeProducts;
     } catch (e) {
-      print('Failed to load Store SKU list: $e');
-      return []; // Return empty list on failure
+      //print('Failed to load Store SKU list: $e');
+      return [];
     }
   }
+
+  // Call this func to get Store SKU List
+//   Future<List<Map<String, dynamic>>> loadFMcgSdStoreSkuList(String dbPath, String storeCode, String period) async {
+//     try {
+//       print('storecode: $storeCode');
+//       final db = await loadDatabase(dbPath);
+//
+//       final storeProducts = await db.rawQuery('''
+//   SELECT
+//     sp.*,
+//     p.*,
+//
+//     -- ✅ Keep current month fields, show '0' or empty if missing
+//     COALESCE(fsu.id, 0) AS fmcg_update_id,
+//     COALESCE(fsu.date, '') AS update_date,
+//     COALESCE(fsu.panel, '') AS panel,
+//     COALESCE(fsu.employee_code, '') AS employee_code,
+//     COALESCE(fsu.openstock, '') AS openstock,
+//     COALESCE(fsu.purchase, '') AS purchase,
+//     COALESCE(fsu.closestock, '') AS closestock,
+//     COALESCE(fsu.mrp, '') AS mrp,
+//     COALESCE(fsu.sale, '') AS sale,
+//     COALESCE(fsu.chilled_stock, '') AS chilled_stock,
+//     COALESCE(fsu.chilled_face, '') AS chilled_face,
+//     COALESCE(fsu.warm_face, '') AS warm_face,
+//     COALESCE(fsu.wholesale, '') AS wholesale,
+//     COALESCE(fsu.sale_last_month, '') AS sale_last_month,
+//     COALESCE(fsu.sale_last_to_last_month, '') AS sale_last_to_last_month,
+//     COALESCE(fsu.status, '') AS status,
+//     COALESCE(fsu.audit_type, '') AS audit_type,
+//
+//     -- ✅ Always keep last month's `mrp` and `closestock` separately
+//     COALESCE(prev_fsu.mrp, '') AS prev_mrp,
+//     COALESCE(prev_fsu.closestock, '') AS prev_closestock
+//
+//   FROM store_products sp
+//   JOIN products p ON sp.product_code = p.code
+//
+//   -- ✅ Current month data from 'fmcg_store_updates'
+//   LEFT JOIN fmcg_store_updates fsu
+//     ON sp.store_code = fsu.store_code
+//     AND sp.product_code = fsu.product_code
+//     AND substr(fsu.date, 1, 7) = strftime('%Y-%m', 'now')  -- Current month
+//
+//   -- ✅ Last month’s data from 'fmcg_store_updates' (always fetched separately)
+//   LEFT JOIN fmcg_store_updates prev_fsu
+//     ON sp.store_code = prev_fsu.store_code
+//     AND sp.product_code = prev_fsu.product_code
+//     AND substr(prev_fsu.date, 1, 7) = strftime('%Y-%m', 'now', '-1 month')  -- Last month
+//
+//   WHERE sp.store_code = ?
+//   ORDER BY p.category_name, p.brand ASC;
+// ''', [storeCode]);
+//
+//       print('Length: ${storeProducts.length} _ $storeProducts');
+//       await db.close();
+//       return storeProducts;
+//     } catch (e) {
+//       print('Failed to load Store SKU list: $e');
+//       return []; // Return empty list on failure
+//     }
+//   }
 
   // Function to update Fmcg SKU details
   Future<void> insertOrUpdateFmcgSkuDetails(
@@ -265,11 +370,16 @@ class DatabaseManager {
       // Check if the record exists
       List<Map<String, dynamic>> existingRows = await db.query(
         'fmcg_store_updates',
-        where: 'store_code = ? AND product_code = ? AND substr(date, 1, 7) = strftime("%Y-%m", "now")',
+        where: '''
+    store_code = ? AND
+    product_code = ? AND
+    date(substr(date, 1, 7) || '-01') >= date('now', '-1 month', 'start of month')
+  ''',
         whereArgs: [storeCode, productCode],
+        orderBy: 'date DESC',
       );
 
-      print('mrp: $mrp');
+      //print('mrp: $mrp');
 
       if (existingRows.isNotEmpty) {
         // UPDATE existing record
@@ -294,11 +404,11 @@ class DatabaseManager {
           where: '''
     store_code = ? 
     AND product_code = ? 
-    AND substr(date, 1, 7) = strftime('%Y-%m', 'now')
+    AND date(substr(date, 1, 7) || '-01') >= date('now', '-1 month', 'start of month')
   ''',
           whereArgs: [storeCode, productCode],
         );
-        print('Sku details updated successfully for store_code: $storeCode');
+        //print('Sku details updated successfully for store_code: $storeCode');
       } else {
         // INSERT new record
         await db.insert(
@@ -323,14 +433,14 @@ class DatabaseManager {
             'created_at': DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
           },
         );
-        print('Sku details insert successfully for store_code: $storeCode');
+        //print('Sku details insert successfully for store_code: $storeCode');
       }
 
       // Close the database
       await db.close();
     } catch (e) {
       // Handle errors
-      print('Error updating Sku details: $e');
+      //print('Error updating Sku details: $e');
       throw Exception('Failed to update Sku details: $e');
     }
   }
@@ -361,11 +471,16 @@ class DatabaseManager {
       // Check if the record exists
       List<Map<String, dynamic>> existingRows = await db.query(
         'fmcg_store_updates',
-        where: 'store_code = ? AND product_code = ? AND substr(date, 1, 7) = strftime("%Y-%m", "now")',
+        where: '''
+    store_code = ? AND
+    product_code = ? AND
+    date(substr(date, 1, 7) || '-01') >= date('now', '-1 month', 'start of month')
+  ''',
         whereArgs: [storeCode, productCode],
+        orderBy: 'date DESC',
       );
 
-      print('mrp: $mrp');
+      //print('mrp: $mrp');
 
       if (existingRows.isNotEmpty) {
         // UPDATE existing record
@@ -393,11 +508,11 @@ class DatabaseManager {
           where: '''
     store_code = ? 
     AND product_code = ? 
-    AND substr(date, 1, 7) = strftime('%Y-%m', 'now')
+    AND date(substr(date, 1, 7) || '-01') >= date('now', '-1 month', 'start of month')
   ''',
           whereArgs: [storeCode, productCode],
         );
-        print('Sku details updated successfully for store_code: $storeCode');
+        //print('Sku details updated successfully for store_code: $storeCode');
       } else {
         // INSERT new record
         await db.insert(
@@ -425,14 +540,14 @@ class DatabaseManager {
             'created_at': DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
           },
         );
-        print('Sku details insert successfully for store_code: $storeCode');
+        //print('Sku details insert successfully for store_code: $storeCode');
       }
 
       // Close the database
       await db.close();
     } catch (e) {
       // Handle errors
-      print('Error updating Sku details: $e');
+      //print('Error updating Sku details: $e');
       throw Exception('Failed to update Sku details: $e');
     }
   }
@@ -444,7 +559,7 @@ class DatabaseManager {
       await db.close();
       return fmcgSdProductsAll;
     } catch (e) {
-      print('Failed to load all Fmcg and Sd products: $e');
+      //print('Failed to load all Fmcg and Sd products: $e');
       return []; // Return empty list on failure
     }
   }
@@ -482,7 +597,7 @@ class DatabaseManager {
         'packTypes': packTypes,
       };
     } catch (e) {
-      print('Failed to load FMCG and SD product data: $e');
+      //print('Failed to load FMCG and SD product data: $e');
       return {
         'categories': [],
         'companies': [],
@@ -524,14 +639,14 @@ class DatabaseManager {
           },
         );
         ShowAlert.showSnackBar(context, 'New SKU inserted successfully');
-        print('New entry is inserted successfully for store_code: $storeCode');
+        //print('New entry is inserted successfully for store_code: $storeCode');
       }
 
       // Close the database
       await db.close();
     } catch (e) {
       // Handle errors
-      print('Error inserting new entry: $e');
+      //print('Error inserting new entry: $e');
       throw Exception('Failed to insert new entry: $e');
     }
   }
@@ -585,13 +700,13 @@ class DatabaseManager {
         },
       );
 
-      print('New Intro is inserted successfully');
+      //print('New Intro is inserted successfully');
 
       // Close the database
       await db.close();
     } catch (e) {
       // Handle errors
-      print('Error updating new intro: $e');
+      //print('Error updating new intro: $e');
       throw Exception('Failed to update new intro: $e');
     }
   }
@@ -637,13 +752,13 @@ class DatabaseManager {
         },
       );
 
-      print('New Product is inserted successfully');
+      //print('New Product is inserted successfully');
 
       // Close the database
       await db.close();
     } catch (e) {
       // Handle errors
-      print('Error updating new entry: $e');
+      //print('Error updating new entry: $e');
       throw Exception('Failed to update new entry: $e');
     }
   }
@@ -670,7 +785,7 @@ class DatabaseManager {
     LIMIT 1;
   ''', [storeCode, productCode]);
 
-    print(result);
+    //print(result);
 
     // If data exists, assign the values
     if (result.isNotEmpty) {
@@ -681,7 +796,7 @@ class DatabaseManager {
         prevClosingStock = result.first['closestock'].toString();
       }
     }
-    print('prev data $prevClosingStock _ $prevMrp');
+    //print('prev data $prevClosingStock _ $prevMrp');
 
     return {'prevMrp': prevMrp, 'prevClosingStock': prevClosingStock};
   }
@@ -707,17 +822,17 @@ class DatabaseManager {
       // Show success message if any row was deleted
       if (rowsDeleted > 0) {
         ShowAlert.showSnackBar(context, 'The SKU has been deleted successfully');
-        print('The SKU for store_code: $storeCode was deleted successfully.');
+        //print('The SKU for store_code: $storeCode was deleted successfully.');
       } else {
         ShowAlert.showSnackBar(context, 'No matching SKU found to delete.');
-        print('No SKU found for store_code: $storeCode and product_code: $productCode.');
+        //print('No SKU found for store_code: $storeCode and product_code: $productCode.');
       }
 
       // Close the database
       await db.close();
     } catch (e) {
       // Handle errors
-      print('Error deleting SKU: $e');
+      //print('Error deleting SKU: $e');
       throw Exception('Failed to delete SKU: $e');
     }
   }

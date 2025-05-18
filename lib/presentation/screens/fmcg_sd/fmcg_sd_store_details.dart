@@ -45,6 +45,8 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
   bool isLoading = false;
   late String _option;
   String store_photo = "";
+  double? userLatitude;
+  double? userLongitude;
 
   late String _storeName;
   late String _contact;
@@ -67,6 +69,8 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
     _landmark = widget.storeData['land_mark'] ?? '';
     store_photo = widget.storeData['store_photo'] ?? '';
     _option = widget.option;
+
+    //print('dateeeee, ${widget.storeData['date']}');
 
     // Initialize the controllers
     nameController = TextEditingController(text: _storeName);
@@ -143,8 +147,10 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
     );
   }
 
-  void _checkIfInsideGeofence(double userLatitude, double userLongitude, int geofenceRad) {
+  void _checkIfInsideGeofence(double userLatitudes, double userLongitudes, int geofenceRad) {
     _geoCode = widget.storeData['geo'];
+    userLatitude = userLatitudes;
+    userLongitude = userLongitudes;
 
     // Split the string by comma
     List<String> coordinates = _geoCode.split(',');
@@ -154,8 +160,8 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
     double geofenceRadius = geofenceRad.toDouble(); // e.g. 100 meters
 
     double distance = Geolocator.distanceBetween(
-      userLatitude,
-      userLongitude,
+      userLatitudes,
+      userLongitudes,
       geofenceLatitude,
       geofenceLongitude,
     );
@@ -166,8 +172,8 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
       isInsideGeofence = distance <= geofenceRadius;
     });
 
-    print('Distance from center: ${distance.toStringAsFixed(2)} meters');
-    print('Outside geofence by: ${outsideDistance > 0 ? outsideDistance.toStringAsFixed(2) : "0.00"} meters');
+    //print('Distance from center: ${distance.toStringAsFixed(2)} meters');
+    //print('Outside geofence by: ${outsideDistance > 0 ? outsideDistance.toStringAsFixed(2) : "0.00"} meters');
 
     if (!isInsideGeofence) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -418,10 +424,36 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('OTP Verify'),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Text(
+                'OTP Verify',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Lat: ${userLatitude ?? 'Loading...'} \nLon: ${userLongitude ?? 'Loading...'}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.blue,
+                ),
+              ),
+            ],
+          ),
           content: TextField(
             controller: otpController,
-            decoration: const InputDecoration(hintText: 'Enter OTP'),
+            decoration: const InputDecoration(
+              hintText: 'Enter OTP',
+              hintStyle: TextStyle(
+                color: Colors.grey,
+                fontSize: 14,
+              ),
+            ),
             keyboardType: TextInputType.number,
           ),
           actions: [
@@ -498,6 +530,13 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
                     controller: landmarkController,
                     decoration: const InputDecoration(labelText: 'Landmark'),
                   ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Lat: ${userLatitude ?? 'Loading...'}, Lon: ${userLongitude ?? 'Loading...'}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                    ),
+                  ),
                   const SizedBox(height: 24),
 
                   // Image capture
@@ -538,6 +577,7 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
                           final newContact = contactController.text.trim();
                           final newDetailAddress = detailAddressController.text.trim();
                           final newLandmark = landmarkController.text.trim();
+                          String newGeo = '$userLatitude, $userLongitude';
 
                           if (newName.isNotEmpty || newContact.isNotEmpty || newDetailAddress.isNotEmpty || newLandmark.isNotEmpty) {
                             setState(() {
@@ -557,7 +597,8 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
                                 newContact,
                                 newDetailAddress,
                                 newLandmark,
-                                store_photo);
+                                store_photo,
+                                newGeo);
 
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Store details updated successfully')),
@@ -590,7 +631,7 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
     try {
       final photo = await _picker.pickImage(source: ImageSource.camera);
       if (photo == null) {
-        print('No image captured.');
+        //print('No image captured.');
         return;
       }
       setState(() {
@@ -621,16 +662,16 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
         // Check if 'store_photo' exists in the list & remove it
         if (store_photo.trim().isNotEmpty) {
           // Debugging: Print current paths
-          print("Existing savedPaths: $savedStoreImgPaths");
-          print("Existing savedPaths: $savedPaths");
-          print("store_photo to check: $store_photo");
+          //print("Existing savedPaths: $savedStoreImgPaths");
+          //print("Existing savedPaths: $savedPaths");
+          //print("store_photo to check: $store_photo");
 
           // Normalize paths before checking
           String normalizedStorePhoto = store_photo.trim();
           savedStoreImgPaths.removeWhere((path) => path.trim() == normalizedStorePhoto);
           savedPaths.removeWhere((path) => path.trim() == normalizedStorePhoto);
 
-          print("Updated savedPaths after removal: $savedStoreImgPaths");
+          //print("Updated savedPaths after removal: $savedStoreImgPaths");
         }
         // Add the new path
         savedStoreImgPaths.add(newFileName);
@@ -638,19 +679,19 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
         // Save updated list to SharedPreferences
         await prefs.setStringList('storeImagePaths', savedStoreImgPaths);
         await prefs.setStringList('imagePaths', savedPaths);
-        print("Updated Image Paths:  $savedPaths"); // Debugging
+        //print("Updated Image Paths:  $savedPaths"); // Debugging
 
         store_photo = newPath;
 
         setState(() {
           _capturedImage = newImage; // Update with the captured image
         });
-        print('Image saved at: $newPath');
+        //print('Image saved at: $newPath');
       } else {
-        print('Failed to decode the image.');
+        //print('Failed to decode the image.');
       }
     } catch (e) {
-      print('Error capturing image: $e');
+      //print('Error capturing image: $e');
     } finally {
       setState(() {
         isLoading = false; // Stop loading

@@ -94,7 +94,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _syncDatabase() async {
     if (await checkConnection.checkConnection(context) == 'data' || await checkConnection.checkConnection(context) == 'wifi') {
       ShowProgress.showProgressDialogWithMsg(context);
-      await fileUploadDownload.getSyncStatus(context, widget.dbPath, widget.auditorId);
+      await fileUploadDownload.getSyncStatus(context, widget.dbPath, widget.auditorId, 'home');
       ShowProgress.hideProgressDialog(context);
     } else {
       ShowAlert.showSnackBar(context, await checkConnection.checkConnection(context));
@@ -287,7 +287,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final dbFile = File(widget.dbPath);
     if (await dbFile.exists()) {
       await dbFile.delete();
-      print('Database deleted');
+      //print('Database deleted');
     }
     await prefs.clear(); // Clear user data
     ShowAlert.showSnackBar(context, 'Logged out');

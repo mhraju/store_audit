@@ -199,7 +199,7 @@ class _FmcgSdStoreAuditState extends State<FmcgSdStoreAudit> {
     savedPaths.remove(file.path);
     await prefs.setStringList('imagePaths', savedPaths);
 
-    print("🗑️ Removed Image: ${file.path}");
+    //print("🗑️ Removed Image: ${file.path}");
   }
 
   @override

@@ -147,7 +147,7 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
         }
       }
     } catch (e) {
-      print('❌ Error taking photo: $e');
+      //print('❌ Error taking photo: $e');
       ShowAlert.showSnackBar(context, 'Failed to take a photo.');
     } finally {
       Navigator.of(context).pop();

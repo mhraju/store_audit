@@ -5,18 +5,19 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:store_audit/utility/assets_path.dart';
 
 import '../db/database_manager.dart';
 import '../utility/show_alert.dart';
 import '../utility/show_progress.dart';
 
 class FileUploadDownload {
-  Future<void> getSyncStatus(BuildContext context, String dbPath, String auditorId) async {
+  Future<void> getSyncStatus(BuildContext context, String dbPath, String auditorId, String page) async {
     try {
       final DatabaseManager dbManager = DatabaseManager();
       final FileUploadDownload fileUploadDownload = FileUploadDownload();
 
-      final url = Uri.parse('https://mcdphp8.bol-online.com/luminaries-app/api/v1/get-sync-status?code=$auditorId');
+      final url = Uri.parse('${AssetsPath.baseUrl}api/v1/get-sync-status?code=$auditorId');
       final response = await http.post(url);
 
       final responseData = json.decode(response.body);
@@ -31,11 +32,12 @@ class FileUploadDownload {
         await prefs.setInt('upStatus', upStatus);
         await prefs.setString('last_download', lastDownload); // Store as String
 
-        if (upStatus == 1) {
-          await fileUploadDownload.uploadFile(context, dbPath, auditorId);
-          await fileUploadDownload.uploadImages(context, dbPath, auditorId);
+        if (page == 'home') {
+          if (upStatus == 1) {
+            await fileUploadDownload.uploadFile(context, dbPath, auditorId);
+            await fileUploadDownload.uploadImages(context, dbPath, auditorId);
+          }
         }
-
         // DateTime lastDownloadDate = DateFormat("yyyy-MM-dd HH:mm:ss").parse(lastDownload);
         // DateTime today = DateTime.now();
         // bool isSameDate = lastDownloadDate.year == today.year && lastDownloadDate.month == today.month && lastDownloadDate.day == today.day;
@@ -64,7 +66,7 @@ class FileUploadDownload {
 
   Future<String> downloadUpdateDB(BuildContext context, String auditorId) async {
     try {
-      final url = Uri.parse('https://mcdphp8.bol-online.com/luminaries-app/api/v1/download-db?code=$auditorId');
+      final url = Uri.parse('${AssetsPath.baseUrl}api/v1/download-db?code=$auditorId');
       final response = await http.post(url);
 
       if (response.statusCode == 200) {
@@ -106,7 +108,7 @@ class FileUploadDownload {
       // Show the progress dialog
       ShowProgress.showProgressDialogWithMsg(context);
 
-      const String apiUrl = 'https://mcdphp8.bol-online.com/luminaries-app/api/v1/upload-db';
+      const String apiUrl = '${AssetsPath.baseUrl}api/v1/upload-db';
 
       var request = http.MultipartRequest('POST', Uri.parse(apiUrl));
 
@@ -163,7 +165,7 @@ class FileUploadDownload {
     // Show progress dialog
     ShowProgress.showProgressDialogWithMsg(context);
 
-    const String apiUrl = 'https://mcdphp8.bol-online.com/luminaries-app/api/v1/upload-user-files';
+    const String apiUrl = '${AssetsPath.baseUrl}api/v1/upload-user-files';
 
     try {
       var request = http.MultipartRequest('POST', Uri.parse(apiUrl))..fields['code'] = auditorId;

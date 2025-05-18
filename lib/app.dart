@@ -26,17 +26,17 @@ class _StoreAuditState extends State<StoreAudit> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.inactive) {
-      print("App is inactive (User switched apps or locked screen)");
+      //print("App is inactive (User switched apps or locked screen)");
     } else if (state == AppLifecycleState.paused) {
-      print("App is in the background");
+      //print("App is in the background");
     } else if (state == AppLifecycleState.resumed) {
-      print("App is active again! Refreshing data...");
+      //print("App is active again! Refreshing data...");
       refreshData(); // Example: Reload API or Database
     }
   }
 
   void refreshData() {
-    print("Fetching latest data...");
+    //print("Fetching latest data...");
     // Add API calls or Database reinitialization if needed
   }
 
@@ -47,8 +47,7 @@ class _StoreAuditState extends State<StoreAudit> with WidgetsBindingObserver {
       home: const SplashScreen(),
       theme: ThemeData(
         colorSchemeSeed: AppColors.primaryColor,
-        progressIndicatorTheme:
-            const ProgressIndicatorThemeData(color: AppColors.primaryColor),
+        progressIndicatorTheme: const ProgressIndicatorThemeData(color: AppColors.primaryColor),
         textTheme: const TextTheme(
           headlineLarge: TextStyle(
             fontSize: 24,

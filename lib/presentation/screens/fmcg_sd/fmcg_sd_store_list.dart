@@ -50,10 +50,10 @@ class _FMCGSDStoresState extends State<FMCGSDStores> with SingleTickerProviderSt
   }
 
   Future<void> _refreshData() async {
-    print("Refreshing data..."); // Debugging
+    //print("Refreshing data..."); // Debugging
 
     final updatedData = await dbManager.loadFMcgSdStores(_dbPath, _auditorId);
-    print("Updated data: $updatedData"); // Debugging
+    //print("Updated data: $updatedData"); // Debugging
 
     setState(() {
       _data = updatedData;

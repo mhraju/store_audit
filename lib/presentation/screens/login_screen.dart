@@ -44,12 +44,12 @@ class _LoginWidgetState extends State<LoginWidget> {
   // Function to make an API call
   Future<void> _fetchDatabasePath(String auditorId) async {
     try {
-      final url = Uri.parse('https://mcdphp8.bol-online.com/luminaries-app/api/v1/download-db?code=$auditorId');
+      final url = Uri.parse('${AssetsPath.baseUrl}api/v1/download-db?code=$auditorId');
       final response = await http.post(url);
 
       final responseData = json.decode(response.body);
       if (responseData['status'] == 1) {
-        print('DbPath okkk');
+        //print('DbPath okkk');
         // Return the database path from the response
         dbUrl = responseData['data']['path'];
         await _saveAuditorId(auditorId);
@@ -78,7 +78,7 @@ class _LoginWidgetState extends State<LoginWidget> {
 
   Future<void> _checkLogin(String auditorId) async {
     try {
-      final url = Uri.parse('https://mcdphp8.bol-online.com/luminaries-app/api/v1/login?code=$auditorId');
+      final url = Uri.parse('${AssetsPath.baseUrl}api/v1/login?code=$auditorId');
       final response = await http.post(url);
 
       final responseData = json.decode(response.body);
@@ -112,6 +112,7 @@ class _LoginWidgetState extends State<LoginWidget> {
   // Navigate to the next screen
   Future<void> _navigateToNextScreen(BuildContext context) async {
     fmcgStoreList = await dbManager.loadFMcgSdStores(_dbPath, _auditorId);
+    //print('Dataaa  $fmcgStoreList');
     ShowProgress.hideProgressDialog(context);
     Get.off(() => HomeScreen(
           fmcgStoreList: fmcgStoreList ?? [],
@@ -186,7 +187,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                   // Make API call and fetch database path
                   await _checkLogin(auditorId);
 
-                  print('Database Path: $dbUrl'); // Use this for debugging
+                  //print('Database Path: $dbUrl'); // Use this for debugging
 
                   // Save the database path if needed
                   final prefs = await SharedPreferences.getInstance();
@@ -195,7 +196,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                   final dbPath = await dbManager.downloadAndSaveUserDatabase();
                   _dbPath = dbPath;
                   _auditorId = auditorId;
-                  await fileUploadDownload.getSyncStatus(context, _dbPath, _auditorId);
+                  await fileUploadDownload.getSyncStatus(context, _dbPath, _auditorId, 'login');
                   _navigateToNextScreen(context);
                 } else {
                   ShowProgress.hideProgressDialog(context);

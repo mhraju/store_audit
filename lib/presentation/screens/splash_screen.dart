@@ -41,8 +41,8 @@ class _SplashScreenState extends State<SplashScreen> {
     });
 
     // Optional: Print version and build number to console for debugging
-    print("App Version: $appVersion");
-    print("Build Number: $buildNumber");
+    //print("App Version: $appVersion");
+    //print("Build Number: $buildNumber");
   }
 
   // Move to the next screen after a delay

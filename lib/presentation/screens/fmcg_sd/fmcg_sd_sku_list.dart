@@ -61,7 +61,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
 
     await Future.delayed(const Duration(seconds: 1));
 
-    final fetchedData = await dbManager.loadFMcgSdStoreSkuList(widget.dbPath, widget.storeCode);
+    final fetchedData = await dbManager.loadFMcgSdStoreSkuList(widget.dbPath, widget.storeCode, widget.period);
 
     final prefs = await SharedPreferences.getInstance();
     List<String> editedItems = prefs.getStringList('editedItems') ?? [];
@@ -139,6 +139,10 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
 
     int saleValue = int.tryParse(skuItem['sale']?.toString() ?? '0') ?? 0; // Initialize properly
 
+    // print('Check open stock ${skuItem['prev_closestock'].toString()}  --- ${skuItem['openstock']}');
+    //
+    // print('Check mrp ${skuItem['mrp']} ---- ${skuItem['prev_mrp']}');
+
     void updateSaleValue() {
       int openingStock = int.tryParse((skuItem['openstock'] != null && skuItem['openstock'].toString().trim().isNotEmpty)
               ? skuItem['openstock'].toString()
@@ -170,7 +174,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
           saleValue = calculatedSale;
         });
       } else {
-        print("Closing stock is empty on Sale");
+        //print("Closing stock is empty on Sale");
         setState(() {
           saleValue = openingStock + purchase;
         });
@@ -191,9 +195,9 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
               )),
           content: TextField(
             controller: inputController,
-            keyboardType: TextInputType.text,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
             decoration: InputDecoration(
-              hintText: "e.g. 42+12-5+2",
+              hintText: "type 42+12-5+2",
               hintStyle: const TextStyle(
                 color: Colors.grey,
                 fontSize: 14,
@@ -222,8 +226,8 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                     double total = prevValue + result;
                     purchaseController.text = total.toStringAsFixed(0);
                   }
-                  Navigator.pop(context);
                   updateSaleValue();
+                  Navigator.pop(context);
                 } catch (e) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -284,7 +288,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                       itemName,
                       skuItem,
                       controller: purchaseController,
-                      onChanged: updateSaleValue,
+                      onTap: () => showValueEntryPopup(context, 'ps'),
                     ),
                     _buildEditableField(
                       'Closing Stock (CS)',
@@ -292,7 +296,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                       itemName,
                       skuItem,
                       controller: closingStockController,
-                      onChanged: updateSaleValue,
+                      onTap: () => showValueEntryPopup(context, 'cs'),
                     ),
 
                     // Sale - Non Editable
@@ -314,7 +318,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                       child: ElevatedButton(
                         onPressed: () async {
                           if (closingStockController.text.trim().isNotEmpty) {
-                            print("Closing stock contains data.");
+                            //print("Closing stock contains data.");
                             int closingStock = double.tryParse(closingStockController.text.trim())?.round() ?? 0;
 
                             if (closingStock == 0) {
@@ -328,7 +332,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                                         : (skuItem['prev_mrp']?.toString().isNotEmpty == true ? skuItem['prev_mrp'].toString() : '0')) ??
                                     0;
 
-                                print('$newMrp _ $lastMrpFromDb _ ${skuItem['prev_mrp']}');
+                                //print('$newMrp _ $lastMrpFromDb _ ${skuItem['prev_mrp']}');
 
                                 if (newMrp == null || newMrp < 0) {
                                   mrpController.text = lastMrpFromDb.toString();
@@ -375,7 +379,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                               // wholesale check
                               int wholesale = double.tryParse(wholesaleController.text.trim())?.round() ?? 0;
 
-                              print('sal: $saleValue _ $wholesale');
+                              //print('sal: $saleValue _ $wholesale');
                               if (wholesale > saleValue) {
                                 // ✅ Show an alert if Wholesale is greater than Sale
                                 ShowAlert.showAlertDialog(
@@ -384,7 +388,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                               }
                             }
                           } else {
-                            print("Closing stock is empty.");
+                            //print("Closing stock is empty.");
                           }
 
                           // ✅ Insert or Update SKU data in the database
@@ -521,7 +525,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
           saleValue = calculatedSale;
         });
       } else {
-        print("Closing stock is empty on Sale");
+        //print("Closing stock is empty on Sale");
         setState(() {
           saleValue = openingStock + purchase;
         });
@@ -542,9 +546,9 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
               )),
           content: TextField(
             controller: inputController,
-            keyboardType: TextInputType.text,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
             decoration: InputDecoration(
-              hintText: "e.g. 42+12-5+2",
+              hintText: "type 42+12-5+2",
               hintStyle: const TextStyle(
                 color: Colors.grey,
                 fontSize: 14,
@@ -573,8 +577,8 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                     double total = prevValue + result;
                     purchaseController.text = total.toStringAsFixed(0);
                   }
-                  Navigator.pop(context);
                   updateSaleValue();
+                  Navigator.pop(context);
                 } catch (e) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -628,14 +632,14 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                     ),
 
                     // Editable Fields
-                    // onTap: () => showValueEntryPopup(context, 'ps'),
+                    // onChanged: updateSaleValue,
                     _buildEditableField(
                       'Purchase',
                       skuItem['purchase']?.toString() ?? '',
                       itemName,
                       skuItem,
                       controller: purchaseController,
-                      onChanged: updateSaleValue,
+                      onTap: () => showValueEntryPopup(context, 'ps'),
                     ),
                     _buildEditableField(
                       'Closing Stock (CS)',
@@ -643,7 +647,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                       itemName,
                       skuItem,
                       controller: closingStockController,
-                      onChanged: updateSaleValue,
+                      onTap: () => showValueEntryPopup(context, 'cs'),
                     ),
 
                     // Sale - Non Editable
@@ -674,7 +678,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                       child: ElevatedButton(
                         onPressed: () async {
                           if (closingStockController.text.trim().isNotEmpty) {
-                            print("Closing stock contains data.");
+                            //print("Closing stock contains data.");
                             int closingStock = double.tryParse(closingStockController.text.trim())?.round() ?? 0;
 
                             if (closingStock == 0) {
@@ -688,7 +692,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                                         : (skuItem['prev_mrp']?.toString().isNotEmpty == true ? skuItem['prev_mrp'].toString() : '0')) ??
                                     0;
 
-                                print('$newMrp _ $lastMrpFromDb _ ${skuItem['prev_mrp']}');
+                                //print('$newMrp _ $lastMrpFromDb _ ${skuItem['prev_mrp']}');
 
                                 if (newMrp == null || newMrp < 0) {
                                   mrpController.text = lastMrpFromDb.toString();
@@ -735,7 +739,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                               // wholesale check
                               int wholesale = double.tryParse(wholesaleController.text.trim())?.round() ?? 0;
 
-                              print('sal: $saleValue _ $wholesale');
+                              //print('sal: $saleValue _ $wholesale');
                               if (wholesale > saleValue) {
                                 // ✅ Show an alert if Wholesale is greater than Sale
                                 ShowAlert.showAlertDialog(
@@ -752,7 +756,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                               int chilledFace = double.tryParse(chilledFaceController.text.trim())?.round() ?? 0;
                               int warmFace = double.tryParse(warmFaceController.text.trim())?.round() ?? 0;
 
-                              print('sd: $closingStock _ $chilledStock _ $chilledFace _ $warmFace');
+                              //print('sd: $closingStock _ $chilledStock _ $chilledFace _ $warmFace');
                               if (chilledStock > closingStock) {
                                 ShowAlert.showAlertDialog(
                                     context, "Invalid Input", "Chilled Stock cannot be more than Closing Stock!\nPlease enter a valid value.");
@@ -772,7 +776,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                               }
                             }
                           } else {
-                            print("Closing stock is empty.");
+                            //print("Closing stock is empty.");
                           }
 
                           // ✅ Insert or Update SKU data in the database
@@ -919,6 +923,9 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
           border: const OutlineInputBorder(),
         ),
         keyboardType: TextInputType.number,
+        // keyboardType: onTap != null
+        //     ? TextInputType.text // if onTap is defined, use text
+        //     : TextInputType.number, // else use number
       ),
     );
   }
