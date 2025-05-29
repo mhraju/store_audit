@@ -73,7 +73,7 @@ class DatabaseManager {
       FROM stores s
       JOIN store_schedules ss
       ON s.code = ss.store_code
-      WHERE s.status = 1 AND ss.`index` = 'FMCG' AND ss.employee_code = ?
+      WHERE s.status = 1 AND (ss.`index` = "FMCG" OR ss.`index` = "Fmcg") AND ss.employee_code = ?
       ORDER BY s.status, ss.date ASC;
     ''', [auditorId]);
 
@@ -552,15 +552,15 @@ class DatabaseManager {
     }
   }
 
-  Future<List<Map<String, dynamic>>> loadFMcgSdProductsAll(String dbPath, String auditorId) async {
+  Future<List<Map<String, dynamic>>> loadFmcgSdProductsAll(String dbPath, String auditorId) async {
     try {
       final db = await loadDatabase(dbPath);
-      final fmcgSdProductsAll = await db.rawQuery('SELECT * FROM products ORDER BY category_name, brand;');
+      final fmcgSdProductsAll = await db.rawQuery('SELECT * FROM products WHERE `index` = "FMCG" OR `index` = "Fmcg" ORDER BY category_name, brand;');
       await db.close();
       return fmcgSdProductsAll;
     } catch (e) {
-      //print('Failed to load all Fmcg and Sd products: $e');
-      return []; // Return empty list on failure
+      // print('Failed to load FMCG and SD products: $e');
+      return []; // Return an empty list on failure
     }
   }
 
@@ -568,38 +568,47 @@ class DatabaseManager {
     try {
       final db = await loadDatabase(dbPath);
 
-      // Query to get distinct category_code and category_name
-      final categories = await db.rawQuery('''
-      SELECT DISTINCT category_code, category_name 
-      FROM products 
-      ORDER BY category_name;
-    ''');
+      final fmcgCategories = await db.rawQuery('''
+  SELECT DISTINCT category_code, category_name 
+  FROM products 
+  WHERE "index" = "FMCG" OR "index" = "Fmcg"
+  ORDER BY category_name;
+''');
 
-      // Query to get distinct company list
+      final sdCategories = await db.rawQuery('''
+  SELECT DISTINCT category_code, category_name 
+  FROM products 
+  WHERE "index" = "SD" OR "index" = "Sd"
+  ORDER BY category_name;
+''');
+
       final companies = await db.rawQuery('''
-      SELECT DISTINCT company 
-      FROM products 
-      ORDER BY company;
-    ''');
+  SELECT DISTINCT company 
+  FROM products 
+  WHERE "index" = "FMCG" OR "index" = "Fmcg" OR "index" = "SD" OR "index" = "Sd"
+  ORDER BY company;
+''');
 
-      // Query to get distinct pack types
       final packTypes = await db.rawQuery('''
-      SELECT DISTINCT pack_type 
-      FROM products 
-      ORDER BY pack_type;
-    ''');
+  SELECT DISTINCT pack_type 
+  FROM products 
+  WHERE "index" = "FMCG" OR "index" = "Fmcg" OR "index" = "SD" OR "index" = "Sd"
+  ORDER BY pack_type;
+''');
 
       await db.close();
 
       return {
-        'categories': categories,
+        'fmcgCategories': fmcgCategories,
+        'sdCategories': sdCategories,
         'companies': companies,
         'packTypes': packTypes,
       };
     } catch (e) {
       //print('Failed to load FMCG and SD product data: $e');
       return {
-        'categories': [],
+        'fmcgCategories': [],
+        'sdCategories': [],
         'companies': [],
         'packTypes': [],
       }; // Return empty lists on failure
@@ -834,6 +843,180 @@ class DatabaseManager {
       // Handle errors
       //print('Error deleting SKU: $e');
       throw Exception('Failed to delete SKU: $e');
+    }
+  }
+
+  // func after Log in for Tobacco
+  Future<List<Map<String, dynamic>>> loadTobaccoStores(String dbPath, String auditorId, int priority) async {
+    try {
+      print(priority);
+      final db = await loadDatabase(dbPath);
+      final storesWithSchedules = await db.rawQuery('''
+      SELECT *
+      FROM stores s
+      JOIN store_schedules ss ON s.code = ss.store_code
+      WHERE s.status = 1
+        AND ss.priority = ?
+        AND (ss.`index` = "TOBACCO" OR ss.`index` = "Tobacco")
+        AND ss.employee_code = ?
+      ORDER BY s.status, ss.date ASC;
+    ''', [priority, auditorId]);
+
+      await db.close();
+      return storesWithSchedules;
+    } catch (e) {
+      // print('Failed to load stores and schedules: $e');
+      return []; // Return empty list on failure
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> loadTobaccoStoreSkuList(String dbPath, String storeCode, String period) async {
+    try {
+      //print('period: $period');
+
+      // Get current device month as 'YYYY-MM'
+      DateTime now = DateTime.now();
+      String currentMonthStr = "${now.year}-${now.month.toString().padLeft(2, '0')}";
+
+      // Parse period value
+      int year = int.parse(period.substring(0, 4));
+      int month = int.parse(period.substring(4, 6));
+
+      // Previous 1 month
+      int prevMonth = month == 1 ? 12 : month - 1;
+      int prevMonthYear = month == 1 ? year - 1 : year;
+      String prevMonthStr = "$prevMonthYear-${prevMonth.toString().padLeft(2, '0')}";
+
+      // Previous 2 months
+      int prev2Month = (month <= 2) ? (12 + month - 2) : (month - 2);
+      int prev2MonthYear = (month == 1) ? year - 1 : (month == 2 ? year - 1 : year);
+      String prev2MonthStr = "$prev2MonthYear-${prev2Month.toString().padLeft(2, '0')}";
+
+      final db = await loadDatabase(dbPath);
+
+      final storeProducts = await db.rawQuery('''
+    SELECT
+      sp.*,
+      p.*,
+
+      -- Current month data (from device date)
+      COALESCE(tsu.id, 0) AS fmcg_update_id,
+      COALESCE(tsu.date, '') AS update_date,
+      COALESCE(tsu.panel, '') AS panel,
+      COALESCE(tsu.employee_code, '') AS employee_code,
+      COALESCE(tsu.openstock, '') AS openstock,
+      COALESCE(tsu.purchase, '') AS purchase,
+      COALESCE(tsu.closestock, '') AS closestock,
+      COALESCE(tsu.sale, '') AS sale,
+      COALESCE(tsu.stick_sell_price, '') AS stick_sell_price,
+      COALESCE(tsu.pack_sell_price, '') AS pack_sell_price,
+      COALESCE(tsu.wholesale, '') AS wholesale,
+      COALESCE(tsu.avg_daily_sale_this_week, '') AS avg_daily_sale_this_week,
+      COALESCE(tsu.avg_daily_sale_last_week, '') AS avg_daily_sale_last_week,
+      COALESCE(tsu.status, '') AS status,
+      COALESCE(tsu.audit_type, '') AS audit_type,
+
+      -- Fallback chain: current period, then 1 month back, then 2 months
+      CASE
+        WHEN tsu_period.closestock IS NOT NULL AND TRIM(tsu_period.closestock) != '' THEN tsu_period.closestock
+        WHEN prev1.closestock IS NOT NULL AND TRIM(prev1.closestock) != '' THEN prev1.closestock
+        WHEN prev2.closestock IS NOT NULL AND TRIM(prev2.closestock) != '' THEN prev2.closestock
+        ELSE ''
+      END AS prev_closestock
+
+    FROM store_products sp
+    JOIN products p ON sp.product_code = p.code
+
+    -- Current month based on device date
+    LEFT JOIN tobacco_store_updates tsu
+      ON sp.store_code = tsu.store_code
+      AND sp.product_code = tsu.product_code
+      AND substr(tsu.date, 1, 7) = ?
+
+    -- Period-based data for openstock and mrp
+    LEFT JOIN tobacco_store_updates tsu_period
+      ON sp.store_code = tsu_period.store_code
+      AND sp.product_code = tsu_period.product_code
+      AND tsu_period.period = ?
+
+    -- 1 month back
+    LEFT JOIN tobacco_store_updates prev1
+      ON sp.store_code = prev1.store_code
+      AND sp.product_code = prev1.product_code
+      AND substr(prev1.date, 1, 7) = ?
+
+    -- 2 months back
+    LEFT JOIN tobacco_store_updates prev2
+      ON sp.store_code = prev2.store_code
+      AND sp.product_code = prev2.product_code
+      AND substr(prev2.date, 1, 7) = ?
+
+    WHERE sp.store_code = ?
+    ORDER BY p.category_name, p.brand ASC;
+  ''', [currentMonthStr, period, prevMonthStr, prev2MonthStr, storeCode]);
+
+      //print('Length: ${storeProducts.length} _ $storeProducts');
+      await db.close();
+      return storeProducts;
+    } catch (e) {
+      //print('Failed to load Store SKU list: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> loadTobaccoProductsAll(String dbPath, String auditorId) async {
+    try {
+      final db = await loadDatabase(dbPath);
+      final tobaccoProductsAll =
+          await db.rawQuery('SELECT * FROM products WHERE `index` = "TOBACCO" OR `index` = "Tobacco" ORDER BY category_name, brand;');
+      await db.close();
+      return tobaccoProductsAll;
+    } catch (e) {
+      // Optionally log the error
+      // print('Failed to load tobacco products: $e');
+      return []; // Return an empty list on failure
+    }
+  }
+
+  Future<Map<String, List<Map<String, dynamic>>>> loadTobaccoProductData(String dbPath) async {
+    try {
+      final db = await loadDatabase(dbPath);
+
+      final categories = await db.rawQuery('''
+  SELECT DISTINCT category_code, category_name 
+  FROM products 
+  WHERE "index" = "TOBACCO" OR "index" = "Tobacco"
+  ORDER BY category_name;
+''');
+
+      final companies = await db.rawQuery('''
+  SELECT DISTINCT company 
+  FROM products 
+  WHERE "index" = "TOBACCO" OR "index" = "Tobacco"
+  ORDER BY company;
+''');
+
+      final packTypes = await db.rawQuery('''
+  SELECT DISTINCT pack_type 
+  FROM products 
+  WHERE "index" = "TOBACCO" OR "index" = "Tobacco"
+  ORDER BY pack_type;
+''');
+
+      await db.close();
+
+      return {
+        'categories': categories,
+        'companies': companies,
+        'packTypes': packTypes,
+      };
+    } catch (e) {
+      //print('Failed to load FMCG and SD product data: $e');
+      return {
+        'categories': [],
+        'companies': [],
+        'packTypes': [],
+      }; // Return empty lists on failure
     }
   }
 }

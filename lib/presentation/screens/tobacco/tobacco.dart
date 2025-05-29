@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:store_audit/presentation/screens/tobacco/tobacco_store_list.dart';
 
+import '../../../db/database_manager.dart';
 import '../../../service/connectivity.dart';
 import '../../../utility/app_colors.dart';
 import '../../../utility/assets_path.dart';
 
 class TobaccoAuditScreen extends StatefulWidget {
-  const TobaccoAuditScreen({super.key});
+  final String dbPath;
+  final String auditorId;
+  const TobaccoAuditScreen({super.key, required this.dbPath, required this.auditorId});
 
   @override
   State<TobaccoAuditScreen> createState() => _TobaccoAuditScreenState();
@@ -17,34 +21,26 @@ class _TobaccoAuditScreenState extends State<TobaccoAuditScreen> {
   final ConnectionCheck checkConnection = ConnectionCheck();
   bool _isLoading = false;
   String? _dbPath;
-  Future<List<Map<String, dynamic>>>? _storeList;
+  final DatabaseManager dbManager = DatabaseManager();
+  List<Map<String, dynamic>>? tobaccoStoreList1;
+  List<Map<String, dynamic>>? tobaccoStoreList2;
+  List<Map<String, dynamic>>? tobaccoStoreList3;
 
   @override
   void initState() {
     super.initState();
-    _loadDbpath();
+    _loadData();
   }
 
-  Future<void> _loadDbpath() async {
+  Future<void> _loadData() async {
     setState(() {
       _isLoading = true; // Show loading indicator
     });
-
-    final prefs = await SharedPreferences.getInstance();
-    final dbPath = prefs.getString('dbPath');
-
-    String? pDbPath = prefs.getString('databasePath');
-
-    //print('newPath: $dbPath ....   oldPath: $pDbPath');
-
-    // if (dbPath != null && dbPath.isNotEmpty) {
-    //   _dbPath = dbPath;
-    //   _storeList = loadDB();
-    // } else {
-    //   _dbPath = null;
-    //   _storeList = fetchStoresFromServer();
-    // }
-
+    tobaccoStoreList1 = await dbManager.loadTobaccoStores(widget.dbPath, widget.auditorId, 1);
+    print(tobaccoStoreList1);
+    tobaccoStoreList2 = await dbManager.loadTobaccoStores(widget.dbPath, widget.auditorId, 2);
+    print(tobaccoStoreList2);
+    tobaccoStoreList3 = await dbManager.loadTobaccoStores(widget.dbPath, widget.auditorId, 3);
     setState(() {
       _isLoading = false; // Hide loading indicator
     });
@@ -70,33 +66,41 @@ class _TobaccoAuditScreenState extends State<TobaccoAuditScreen> {
 
   // Function to navigate to different pages based on the card title
   void _navigateToNextPage(String title) {
-    // switch (title) {
-    //   case 'First Visit':
-    //     Navigator.push(
-    //       context,
-    //       MaterialPageRoute(builder: (context) => FirstVisitPage()),
-    //     );
-    //     break;
-    //   case 'Second Visit':
-    //     Navigator.push(
-    //       context,
-    //       MaterialPageRoute(builder: (context) => SecondVisitPage()),
-    //     );
-    //     break;
-    //   case 'Store Audit':
-    //     Navigator.push(
-    //       context,
-    //       MaterialPageRoute(builder: (context) => StoreAuditPage()),
-    //     );
-    //     break;
-    //   default:
-    //     // Default case to handle unexpected titles
-    //     Navigator.push(
-    //       context,
-    //       MaterialPageRoute(builder: (context) => DefaultPage()),
-    //     );
-    //     break;
-    // }
+    switch (title) {
+      case 'First Visit':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TobaccoStoreList(dbPath: widget.dbPath, auditorId: widget.auditorId, priority: 1),
+          ),
+        );
+        break;
+      case 'Second Visit':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TobaccoStoreList(dbPath: widget.dbPath, auditorId: widget.auditorId, priority: 2),
+          ),
+        );
+        break;
+      case 'Store Audit':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TobaccoStoreList(dbPath: widget.dbPath, auditorId: widget.auditorId, priority: 3),
+          ),
+        );
+        break;
+      default:
+        // Default case to handle unexpected titles
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TobaccoStoreList(dbPath: widget.dbPath, auditorId: widget.auditorId, priority: 1),
+          ),
+        );
+        break;
+    }
   }
 
   // Widget to build option cards with onTap functionality
@@ -146,12 +150,12 @@ class _TobaccoAuditScreenState extends State<TobaccoAuditScreen> {
         backgroundColor: AppColors.appBarColor, // Use your custom color
         elevation: 0,
         title: const Text('Tobacco Audit'),
-        // actions: [
-        //   IconButton(
-        //     icon: const Icon(Icons.sync, color: Colors.black),
-        //     onPressed: _syncDatabase,
-        //   ),
-        // ],
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -179,14 +183,22 @@ class _TobaccoAuditScreenState extends State<TobaccoAuditScreen> {
                     ),
                   ),
                   const SizedBox(height: 36),
-                  _buildOptionCard('First Visit', 20, Colors.blue.shade900),
+                  _buildOptionCard('First Visit', tobaccoStoreList1?.length ?? 0, Colors.blue.shade900),
                   const SizedBox(height: 16),
-                  _buildOptionCard('Second Visit', 40, Colors.blue.shade900),
+                  _buildOptionCard('Second Visit', tobaccoStoreList2?.length ?? 0, Colors.blue.shade900),
                   const SizedBox(height: 16),
-                  _buildOptionCard('Store Audit', 40, Colors.grey),
+                  _buildOptionCard('Store Audit', tobaccoStoreList3?.length ?? 0, Colors.blue.shade900),
                 ],
               ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    // If you have any controllers or listeners to clean up, do it here.
+    // Example: someController.dispose();
+
+    super.dispose();
   }
 }

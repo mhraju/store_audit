@@ -8,15 +8,16 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
-import 'package:store_audit/presentation/screens/fmcg_sd/fmcg_sd_new_entry.dart';
-import 'package:store_audit/presentation/screens/fmcg_sd/fmcg_sd_sku_list.dart';
+
+import 'package:store_audit/presentation/screens/tobacco/tobacco_new_entry.dart';
+import 'package:store_audit/presentation/screens/tobacco/tobacco_sku_list.dart';
 import '../../../db/database_manager.dart';
 import '../../../utility/app_colors.dart';
 import '../../../utility/show_alert.dart';
 import '../../../utility/show_progress.dart';
 import 'package:dropdown_search/dropdown_search.dart';
 
-class FmcgSdNewIntro extends StatefulWidget {
+class TobaccoNewIntro extends StatefulWidget {
   final String dbPath;
   final String storeCode;
   final String auditorId;
@@ -24,7 +25,7 @@ class FmcgSdNewIntro extends StatefulWidget {
   final String shortCode;
   final String storeName;
   final String period;
-  const FmcgSdNewIntro({
+  const TobaccoNewIntro({
     super.key,
     required this.dbPath,
     required this.storeCode,
@@ -36,26 +37,23 @@ class FmcgSdNewIntro extends StatefulWidget {
   });
 
   @override
-  State<FmcgSdNewIntro> createState() => _FmcgSdNewIntroState();
+  State<TobaccoNewIntro> createState() => _TobaccoNewIntroState();
 }
 
-class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
+class _TobaccoNewIntroState extends State<TobaccoNewIntro> {
   final _formKey = GlobalKey<FormState>();
   bool isLoading = true;
   final DatabaseManager dbManager = DatabaseManager();
   String? selectedCompany;
   String? selectedPack;
   List<Map<String, dynamic>> categories = [];
-  List<Map<String, dynamic>> fmcgCategories = [];
-  List<Map<String, dynamic>> sdCategories = [];
   List<Map<String, dynamic>> companies = [];
   List<Map<String, dynamic>> packTypes = [];
   final ImagePicker _picker = ImagePicker();
   final List<File> _imageFiles = [];
-  late List<String> savedImgPaths;
   String? selectedCategoryCode;
   String? selectedCategoryName;
-  String? selectedOption; // No default value
+  //String? selectedOption;
 
   TextEditingController otherCompanyController = TextEditingController();
 
@@ -70,10 +68,9 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
       isLoading = true; // Ensure UI shows loading state
     });
     // await Future.delayed(const Duration(seconds: 1));
-    final fetchedData = await dbManager.loadFmcgSdProductData(widget.dbPath);
+    final fetchedData = await dbManager.loadTobaccoProductData(widget.dbPath);
     setState(() {
-      fmcgCategories = fetchedData['fmcgCategories'] ?? [];
-      sdCategories = fetchedData['sdCategories'] ?? [];
+      categories = fetchedData['categories'] ?? [];
       companies = fetchedData['companies'] ?? [];
       packTypes = fetchedData['packTypes'] ?? [];
       isLoading = false;
@@ -186,10 +183,10 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
         ShowAlert.showSnackBar(context, "Please select any Company.");
         return;
       }
-      if (selectedOption == null) {
-        ShowAlert.showSnackBar(context, "Please select 'FMCG' or 'SD'.");
-        return;
-      }
+      // if (selectedOption == null) {
+      //   ShowAlert.showSnackBar(context, "Please select 'FMCG' or 'SD'.");
+      //   return;
+      // }
       if (selectedPack == null) {
         ShowAlert.showSnackBar(context, "Please select any Pack Type.");
         return;
@@ -198,13 +195,13 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
       if (_imageFiles.length == 4) {
         // Save image path in SharedPreferences
         final prefs = await SharedPreferences.getInstance();
-        savedImgPaths = prefs.getStringList('imagePaths') ?? []; // Get existing saved images
+        List<String> savedPaths = prefs.getStringList('imagePaths') ?? []; // Get existing saved images
         if (_imageFiles.isNotEmpty) {
           List<String> newPaths = _imageFiles.map((file) => p.basename(file.path)).toList();
-          savedImgPaths = {...savedImgPaths, ...newPaths}.toList();
+          savedPaths = {...savedPaths, ...newPaths}.toList();
         }
-        await prefs.setStringList('imagePaths', savedImgPaths); //
-        print("✅ Final saved images: $savedImgPaths");
+        await prefs.setStringList('imagePaths', savedPaths); //
+        //print("✅ Final saved images: $savedPaths");
 
         String productCode = generateSecureSixDigitProductCode();
         //productCode = 'temp_intro_$productCode';
@@ -212,21 +209,21 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
         await dbManager.insertFMcgSdProductIntro(
           widget.dbPath,
           widget.auditorId,
-          selectedOption!,
+          'TOBACCO',
           'temp_${widget.auditorId}_$productCode',
           selectedCategoryName!,
           selectedCompany!,
-          countryController.text.trim().toUpperCase(),
-          brandController.text.trim().toUpperCase(),
-          itemDescriptionController.text.trim().toUpperCase(),
+          countryController.text.trim(),
+          brandController.text.trim(),
+          itemDescriptionController.text.trim(),
           selectedPack!,
-          packSizeController.text.trim().toUpperCase(),
-          promotypeController.text.trim().toUpperCase(),
+          packSizeController.text.trim(),
+          promotypeController.text,
           mrpController.text,
-          savedImgPaths[0],
-          savedImgPaths[1],
-          savedImgPaths[2],
-          savedImgPaths[3],
+          _imageFiles[0].path,
+          _imageFiles[1].path,
+          _imageFiles[2].path,
+          _imageFiles[3].path,
         );
 
         await dbManager.insertFMcgSdStoreProduct(
@@ -240,24 +237,24 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
         await dbManager.insertFMcgSdProducts(
           widget.dbPath,
           widget.auditorId,
-          selectedOption!,
+          'TOBACCO',
           'temp_${widget.auditorId}_$productCode',
           selectedCategoryCode!,
           selectedCategoryName!,
           selectedCompany!,
-          brandController.text.trim().toUpperCase(),
-          countryController.text.trim().toUpperCase(),
-          itemDescriptionController.text.trim().toUpperCase(),
+          brandController.text,
+          countryController.text,
+          itemDescriptionController.text,
           selectedPack!,
-          packSizeController.text.trim().toUpperCase(),
-          promotypeController.text.trim().toUpperCase(),
+          packSizeController.text,
+          promotypeController.text,
           mrpController.text,
         );
 
         ShowAlert.showSnackBar(context, 'Product intro submitted successfully!');
 
         setState(() {
-          selectedOption = null;
+          //selectedOption = null;
           selectedCompany = null;
           countryController.clear();
           brandController.clear();
@@ -270,19 +267,6 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
           selectedCategoryName = null;
           _imageFiles.clear();
         });
-
-        // OPTION 2: **Refresh the Page After Submission**
-        // Navigator.pushReplacement(
-        //   context,
-        //   MaterialPageRoute(builder: (context) => FmcgSdNewIntro(
-        //     dbPath: widget.dbPath,
-        //     storeCode: widget.storeCode,
-        //     auditorId: widget.auditorId,
-        //     option: widget.option,
-        //     shortCode: widget.shortCode,
-        //     storeName: widget.storeName,
-        //   )),
-        // );
       } else {
         ShowAlert.showSnackBar(context, "You can upload 4 images.");
       }
@@ -315,48 +299,6 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 16),
-
-                DropdownButtonFormField<String>(
-                  value: selectedOption, // No default value
-                  decoration: InputDecoration(
-                    labelText: "Select Product Type",
-                    filled: true,
-                    fillColor: Colors.white70,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  items: ['FMCG', 'SD'].map((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(
-                        value,
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.normal),
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (newValue) {
-                    setState(() {
-                      selectedOption = newValue;
-                      selectedCategoryCode = null;
-                      selectedCategoryName = null;
-
-                      // Assign categories based on selected option
-                      if (newValue == 'FMCG') {
-                        categories = fmcgCategories;
-                      } else if (newValue == 'SD') {
-                        categories = sdCategories;
-                      } else {
-                        categories = [];
-                      }
-                    });
-                  },
-                  validator: (value) => value == null ? "Select a product type" : null, // Ensures a selection is made
-                  dropdownColor: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-
-                const SizedBox(height: 12),
 
                 /// **Dropdown for Category Selection**
                 DropdownButtonFormField<String>(
@@ -423,31 +365,6 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
                   },
                   validator: (value) => value == null || value.isEmpty ? "Select a company" : null,
                 ),
-
-                // DropdownButtonFormField<String>(
-                //   value: selectedCompany,
-                //   decoration: _inputDecoration("Select Company"),
-                //   items: [
-                //     ...[...companies.map((company) => company['company'] as String), 'Others'].map((company) => DropdownMenuItem<String>(
-                //           value: company,
-                //           child: Padding(
-                //             padding: const EdgeInsets.symmetric(horizontal: 0),
-                //             child: Text(
-                //               company,
-                //               style: TextStyle(fontSize: 15, fontWeight: company == 'Others' ? FontWeight.normal : FontWeight.normal),
-                //             ),
-                //           ),
-                //         ))
-                //   ],
-                //   onChanged: (value) {
-                //     setState(() {
-                //       selectedCompany = value; // Update selected company
-                //     });
-                //   },
-                //   validator: (value) => value == null ? "Select a company" : null,
-                //   dropdownColor: Colors.white,
-                //   borderRadius: BorderRadius.circular(10),
-                // ),
 
                 const SizedBox(height: 12),
 
@@ -531,26 +448,6 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
                   ),
                 ),
 
-                const SizedBox(height: 12),
-
-                // Center(
-                //   child: OutlinedButton.icon(
-                //     onPressed: _takePhoto,
-                //     icon: const Icon(Icons.camera_alt, color: Color(0xFF006a5e)),
-                //     label: const Text(
-                //       'Take Product 4 Photos',
-                //       style: TextStyle(fontSize: 15, color: Color(0xFF006a5e)),
-                //     ),
-                //     style: OutlinedButton.styleFrom(
-                //       side: const BorderSide(color: Color(0xFF006a5e), width: 2),
-                //       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-                //       shape: RoundedRectangleBorder(
-                //         borderRadius: BorderRadius.circular(12.0),
-                //       ),
-                //     ),
-                //   ),
-                // ),
-
                 const SizedBox(height: 24),
 
                 /// **Submit Button**
@@ -575,19 +472,6 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
                     ),
                   ),
                 ),
-                // Row(
-                //   mainAxisAlignment: MainAxisAlignment.end, // ✅ Aligns button to the right
-                //   children: [
-                //     ElevatedButton(
-                //       onPressed: _submitForm,
-                //       style: ElevatedButton.styleFrom(
-                //         backgroundColor: Colors.blue,
-                //         foregroundColor: Colors.white,
-                //       ),
-                //       child: const Text("Submit", style: TextStyle(fontSize: 15)),
-                //     ),
-                //   ],
-                // ),
 
                 const SizedBox(height: 200), // ✅ Extra space to prevent bottom overflow
               ],
@@ -617,7 +501,7 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => FmcgSdNewEntry(
+                        builder: (context) => TobaccoNewEntry(
                           dbPath: widget.dbPath,
                           storeCode: widget.storeCode,
                           auditorId: widget.auditorId,
@@ -647,7 +531,7 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => FmcgSdSkuList(
+                        builder: (context) => TobaccoSkuList(
                           dbPath: widget.dbPath,
                           storeCode: widget.storeCode,
                           auditorId: widget.auditorId,

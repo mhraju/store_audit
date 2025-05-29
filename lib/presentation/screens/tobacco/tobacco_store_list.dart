@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'tobacco_store_details.dart';
 
 import '../../../db/database_manager.dart';
 import '../../../utility/app_colors.dart';
 import '../../../utility/show_alert.dart';
-import '../fmcg_sd/fmcg_sd_store_details.dart';
 
 class TobaccoStoreList extends StatefulWidget {
   final String dbPath;
   final String auditorId;
+  final int priority;
 
-  const TobaccoStoreList({super.key, required this.dbPath, required this.auditorId});
+  const TobaccoStoreList({super.key, required this.dbPath, required this.auditorId, required this.priority});
 
   @override
   State<TobaccoStoreList> createState() => _TobaccoStoreListState();
@@ -53,7 +54,7 @@ class _TobaccoStoreListState extends State<TobaccoStoreList> with SingleTickerPr
   Future<void> _refreshData() async {
     print("Refreshing data..."); // Debugging
 
-    final updatedData = await dbManager.loadFMcgSdStores(_dbPath, _auditorId);
+    final updatedData = await dbManager.loadTobaccoStores(_dbPath, _auditorId, widget.priority);
     print("Updated data: $updatedData"); // Debugging
 
     setState(() {
@@ -96,7 +97,7 @@ class _TobaccoStoreListState extends State<TobaccoStoreList> with SingleTickerPr
         backgroundColor: AppColors.appBarColor,
         elevation: 0,
         title: const Text(
-          'FMCG SD Stores',
+          'Tobacco Stores',
           style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w500, fontFamily: 'Inter'),
         ),
         leading: IconButton(
@@ -116,23 +117,25 @@ class _TobaccoStoreListState extends State<TobaccoStoreList> with SingleTickerPr
     return Column(
       children: [
         // Search Bar
-        // Padding(
-        //   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        //   child: TextField(
-        //     controller: _searchController,
-        //     decoration: InputDecoration(
-        //       hintText: 'Search for Store',
-        //       prefixIcon: const Icon(Icons.search),
-        //       filled: true,
-        //       fillColor: Colors.grey[200],
-        //       border: OutlineInputBorder(
-        //         borderRadius: BorderRadius.circular(30),
-        //         borderSide: BorderSide.none,
-        //       ),
-        //     ),
-        //     onChanged: (value) => _filterStores(value),
-        //   ),
-        // ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'search by store code / store name',
+              hintStyle: const TextStyle(fontSize: 14, color: Colors.grey),
+              prefixIcon: const Icon(Icons.search),
+              filled: true,
+              fillColor: const Color(0xFFEAEFF6),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            //keyboardType: TextInputType.number,
+            onChanged: (value) => _filterStores(value),
+          ),
+        ),
         // Tabs
         PreferredSize(
           preferredSize: const Size.fromHeight(100),
@@ -334,7 +337,7 @@ class _TobaccoStoreListState extends State<TobaccoStoreList> with SingleTickerPr
         Navigator.push(
           context,
           MaterialPageRoute(
-              builder: (context) => FmcgSdStoreDetails(
+              builder: (context) => TobaccoStoreDetails(
                   storeList: _data, storeData: item, dbPath: _dbPath, auditorId: _auditorId, option: option, shortCode: shortCode)),
         ).then((value) {
           _refreshData(); // Call method to refresh database data

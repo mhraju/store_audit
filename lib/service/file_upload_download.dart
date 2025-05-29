@@ -36,6 +36,8 @@ class FileUploadDownload {
           if (upStatus == 1) {
             await fileUploadDownload.uploadFile(context, dbPath, auditorId);
             await fileUploadDownload.uploadImages(context, dbPath, auditorId);
+          } else {
+            ShowAlert.showSnackBar(context, 'Upload unavailable. Please contact the admin.');
           }
         }
         // DateTime lastDownloadDate = DateFormat("yyyy-MM-dd HH:mm:ss").parse(lastDownload);
@@ -47,9 +49,9 @@ class FileUploadDownload {
           await prefs.setString('dbUrl', dbUrl);
           await dbManager.downloadAndSaveUserDatabase();
           await prefs.setInt('dwStatus', 0);
-          ShowAlert.showSnackBar(context, 'Database sync successfully');
+          ShowAlert.showSnackBar(context, 'Database synced successfully');
         } else {
-          ShowAlert.showSnackBar(context, 'Database already updated for today');
+          ShowAlert.showSnackBar(context, 'Database is already updated for today');
         }
       } else {
         ShowAlert.showSnackBar(context, responseData['message']);
@@ -131,7 +133,7 @@ class FileUploadDownload {
       // Handle response
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ File uploaded successfully!')),
+          const SnackBar(content: Text('File uploaded successfully!')),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -205,7 +207,7 @@ class FileUploadDownload {
 
         await prefs.remove('imagePaths');
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Image upload completed successfully.')),
+          const SnackBar(content: Text('Image uploaded successfully.')),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(

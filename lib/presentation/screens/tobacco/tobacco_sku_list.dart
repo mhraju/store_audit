@@ -2,13 +2,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:math_expressions/math_expressions.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:store_audit/presentation/screens/fmcg_sd/fmcg_sd_new_entry.dart';
+
 import 'package:store_audit/presentation/screens/fmcg_sd/fmcg_sd_store_audit.dart';
+import 'package:store_audit/presentation/screens/tobacco/tobacco_new_entry.dart';
 import 'package:store_audit/utility/show_alert.dart';
 import '../../../db/database_manager.dart';
 import '../../../utility/app_colors.dart';
 
-class FmcgSdSkuList extends StatefulWidget {
+class TobaccoSkuList extends StatefulWidget {
   final String dbPath;
   final String storeCode;
   final String auditorId;
@@ -16,7 +17,7 @@ class FmcgSdSkuList extends StatefulWidget {
   final String shortCode;
   final String storeName;
   final String period;
-  const FmcgSdSkuList({
+  const TobaccoSkuList({
     super.key,
     required this.dbPath,
     required this.storeCode,
@@ -28,10 +29,10 @@ class FmcgSdSkuList extends StatefulWidget {
   });
 
   @override
-  State<FmcgSdSkuList> createState() => _FmcgSdSkuListState();
+  State<TobaccoSkuList> createState() => _TobaccoSkuListState();
 }
 
-class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
+class _TobaccoSkuListState extends State<TobaccoSkuList> {
   List<Map<String, dynamic>> skuData = [];
   List<Map<String, dynamic>> filteredSkuData = [];
   bool isLoading = true;
@@ -61,57 +62,32 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
 
     await Future.delayed(const Duration(seconds: 1));
 
-    final fetchedData = await dbManager.loadFMcgSdStoreSkuList(
-      widget.dbPath,
-      widget.storeCode,
-      widget.period,
-    );
+    final fetchedData = await dbManager.loadTobaccoStoreSkuList(widget.dbPath, widget.storeCode, widget.period);
 
     final prefs = await SharedPreferences.getInstance();
     List<String> editedItems = prefs.getStringList('editedItems') ?? [];
-
-    // Restore stored colors
+    //print('color: checkList $editedItems');
+    // ✅ Reload stored colors for each SKU item explicitly from editedItems
     Map<String, Color> restoredColors = {};
     for (var item in fetchedData) {
       String productCode = item['product_code'];
+      //print('color: check $itemName');
       if (editedItems.contains(productCode)) {
         int? colorValue = prefs.getInt("color_${widget.storeCode}_$productCode");
         restoredColors[productCode] = (colorValue != null) ? Color(colorValue) : Colors.grey.shade300;
+        //print('color: ok ${restoredColors[itemName]}');
       } else {
         restoredColors[productCode] = Colors.grey.shade300;
+        //print('color: Not ok ${restoredColors[itemName]}');
       }
     }
 
     savedSkus = prefs.getStringList('newEntry') ?? [];
 
-    // Make a mutable copy of fetchedData for sorting
-    final mutableFetchedData = List<Map<String, dynamic>>.from(fetchedData);
-
-    // Sort based on color priority: Grey -> Yellow -> Green
-    mutableFetchedData.sort((a, b) {
-      String codeA = a['product_code'];
-      String codeB = b['product_code'];
-      Color colorA = restoredColors[codeA] ?? Colors.grey.shade300;
-      Color colorB = restoredColors[codeB] ?? Colors.grey.shade300;
-
-      int getColorPriority(Color color) {
-        final int grey = Colors.grey.shade300.value;
-        final int yellow = Colors.yellow.shade300.value;
-        final int green = Colors.green.shade300.value;
-
-        if (color.value == grey) return 0;
-        if (color.value == yellow) return 1;
-        if (color.value == green) return 2;
-        return 3; // fallback for any other color
-      }
-
-      return getColorPriority(colorA).compareTo(getColorPriority(colorB));
-    });
-
     setState(() {
-      skuData = mutableFetchedData;
-      filteredSkuData = mutableFetchedData;
-      skuItemColors = restoredColors;
+      skuData = fetchedData;
+      filteredSkuData = fetchedData;
+      skuItemColors = restoredColors; // ✅ Restore colors here
       isLoading = false;
     });
   }
@@ -1037,6 +1013,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                         itemBuilder: (context, index) {
                           final skuItem = filteredSkuData[index];
                           String itemName = skuItem['item_description'];
+                          // String itemName = "${skuItem['product_code']} - ${skuItem['item_description']}";
                           String productCode = skuItem['product_code'];
 
                           return Dismissible(
@@ -1145,7 +1122,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => FmcgSdNewEntry(
+                              builder: (context) => TobaccoNewEntry(
                                     dbPath: widget.dbPath,
                                     storeCode: widget.storeCode,
                                     auditorId: widget.auditorId,

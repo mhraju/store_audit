@@ -6,20 +6,20 @@ import 'package:image/image.dart' as img; // Import the image package
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:store_audit/db/database_manager.dart';
-import 'package:store_audit/presentation/screens/fmcg_sd/fmcg_sd_sku_list.dart';
 import 'package:store_audit/presentation/screens/fmcg_sd/fmcg_sd_store_audit.dart';
+import 'package:store_audit/presentation/screens/tobacco/tobacco_sku_list.dart';
 
 import '../../../utility/app_colors.dart';
 import '../../../utility/show_alert.dart';
 
-class FmcgSdStoreDetails extends StatefulWidget {
+class TobaccoStoreDetails extends StatefulWidget {
   final List<Map<String, dynamic>> storeList;
   final Map<String, dynamic> storeData;
   final String dbPath;
   final String auditorId;
   final String option;
   final String shortCode;
-  const FmcgSdStoreDetails(
+  const TobaccoStoreDetails(
       {super.key,
       required this.storeList,
       required this.storeData,
@@ -29,10 +29,10 @@ class FmcgSdStoreDetails extends StatefulWidget {
       required this.shortCode});
 
   @override
-  State<FmcgSdStoreDetails> createState() => _FmcgSdStoreDetailsState();
+  State<TobaccoStoreDetails> createState() => _TobaccoStoreDetailsState();
 }
 
-class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
+class _TobaccoStoreDetailsState extends State<TobaccoStoreDetails> {
   bool isLocationWorking = false;
   bool otpVerified = false;
   File? _capturedImage; // Variable to store the captured or picked image
@@ -222,23 +222,23 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
                     Center(
                       child: isLoading
                           ? const SizedBox(
-                              height: 150,
-                              width: 320,
+                              height: 130,
+                              width: 300,
                               child: Center(child: CircularProgressIndicator()),
                             )
                           : _capturedImage != null
                               ? Image.file(
                                   _capturedImage!,
-                                  height: 150,
-                                  width: 320,
+                                  height: 130,
+                                  width: 300,
                                   fit: BoxFit.cover,
                                 )
-                              : (store_photo.isNotEmpty)
+                              : (store_photo.isNotEmpty && File(store_photo).existsSync())
                                   ? Image.file(
                                       File(
                                           '/data/user/0/com.luminaries_research.store_audit/app_flutter/$store_photo'), // ✅ Load image from file path
-                                      height: 150,
-                                      width: 320,
+                                      height: 130,
+                                      width: 300,
                                       fit: BoxFit.cover,
                                     )
                                   : const Icon(Icons.image, size: 100, color: Colors.grey), // Default icon
@@ -392,7 +392,7 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => FmcgSdSkuList(
+                              builder: (context) => TobaccoSkuList(
                                 dbPath: widget.dbPath,
                                 storeCode: widget.storeData['code'],
                                 auditorId: widget.auditorId,
@@ -666,10 +666,17 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
         List<String> savedPaths = prefs.getStringList('imagePaths') ?? [];
         // Check if 'store_photo' exists in the list & remove it
         if (store_photo.trim().isNotEmpty) {
+          // Debugging: Print current paths
+          //print("Existing savedPaths: $savedStoreImgPaths");
+          //print("Existing savedPaths: $savedPaths");
+          //print("store_photo to check: $store_photo");
+
           // Normalize paths before checking
           String normalizedStorePhoto = store_photo.trim();
           savedStoreImgPaths.removeWhere((path) => path.trim() == normalizedStorePhoto);
           savedPaths.removeWhere((path) => path.trim() == normalizedStorePhoto);
+
+          //print("Updated savedPaths after removal: $savedStoreImgPaths");
         }
         // Add the new path
         savedStoreImgPaths.add(newFileName);
@@ -677,9 +684,10 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
         // Save updated list to SharedPreferences
         await prefs.setStringList('storeImagePaths', savedStoreImgPaths);
         await prefs.setStringList('imagePaths', savedPaths);
+        //print("Updated Image Paths:  $savedPaths"); // Debugging
 
-        store_photo = newFileName;
-        print("Updated Image Paths:  $store_photo");
+        store_photo = newPath;
+
         setState(() {
           _capturedImage = newImage; // Update with the captured image
         });

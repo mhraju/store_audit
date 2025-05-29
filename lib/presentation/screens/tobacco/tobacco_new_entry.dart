@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:store_audit/presentation/screens/fmcg_sd/fmcg_sd_new_intro.dart';
-import 'package:store_audit/presentation/screens/fmcg_sd/fmcg_sd_sku_list.dart';
+import 'package:store_audit/presentation/screens/tobacco/tobacco_new_intro.dart';
+import 'package:store_audit/presentation/screens/tobacco/tobacco_sku_list.dart';
 
 import '../../../db/database_manager.dart';
 import '../../../utility/app_colors.dart';
 import '../../../utility/show_alert.dart';
 
-class FmcgSdNewEntry extends StatefulWidget {
+class TobaccoNewEntry extends StatefulWidget {
   final String dbPath;
   final String storeCode;
   final String auditorId;
@@ -15,7 +15,7 @@ class FmcgSdNewEntry extends StatefulWidget {
   final String shortCode;
   final String storeName;
   final String period;
-  const FmcgSdNewEntry({
+  const TobaccoNewEntry({
     super.key,
     required this.dbPath,
     required this.storeCode,
@@ -27,10 +27,10 @@ class FmcgSdNewEntry extends StatefulWidget {
   });
 
   @override
-  State<FmcgSdNewEntry> createState() => _FmcgSdNewEntryState();
+  State<TobaccoNewEntry> createState() => _TobaccoNewEntryState();
 }
 
-class _FmcgSdNewEntryState extends State<FmcgSdNewEntry> {
+class _TobaccoNewEntryState extends State<TobaccoNewEntry> {
   List<Map<String, dynamic>> skuData = [];
   List<Map<String, dynamic>> filteredSkuData = [];
   bool isLoading = true;
@@ -58,7 +58,7 @@ class _FmcgSdNewEntryState extends State<FmcgSdNewEntry> {
       isLoading = true; // Ensure UI shows loading state
     });
     await Future.delayed(const Duration(seconds: 1));
-    final fetchedData = await dbManager.loadFmcgSdProductsAll(widget.dbPath, widget.storeCode);
+    final fetchedData = await dbManager.loadTobaccoProductsAll(widget.dbPath, widget.storeCode);
 
     setState(() {
       skuData = fetchedData;
@@ -293,7 +293,7 @@ class _FmcgSdNewEntryState extends State<FmcgSdNewEntry> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => FmcgSdSkuList(
+                            builder: (context) => TobaccoSkuList(
                               dbPath: widget.dbPath,
                               storeCode: widget.storeCode,
                               auditorId: widget.auditorId,
@@ -349,7 +349,7 @@ class _FmcgSdNewEntryState extends State<FmcgSdNewEntry> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => FmcgSdNewIntro(
+        builder: (context) => TobaccoNewIntro(
           dbPath: widget.dbPath,
           storeCode: widget.storeCode,
           auditorId: widget.auditorId,

@@ -68,7 +68,7 @@ class _FMCGSDStoresState extends State<FMCGSDStores> with SingleTickerProviderSt
         _filteredData = _data;
       } else {
         _filteredData = _data.where((item) {
-          return item['code'].toString().contains(query);
+          return item['name'].toLowerCase().contains(query.toLowerCase()) || item['code'].toString().contains(query);
         }).toList();
       }
     });
@@ -120,7 +120,7 @@ class _FMCGSDStoresState extends State<FMCGSDStores> with SingleTickerProviderSt
           child: TextField(
             controller: _searchController,
             decoration: InputDecoration(
-              hintText: 'search by store code',
+              hintText: 'search by store code / store name',
               hintStyle: const TextStyle(fontSize: 14, color: Colors.grey),
               prefixIcon: const Icon(Icons.search),
               filled: true,
@@ -130,6 +130,7 @@ class _FMCGSDStoresState extends State<FMCGSDStores> with SingleTickerProviderSt
                 borderSide: BorderSide.none,
               ),
             ),
+            //keyboardType: TextInputType.number,
             onChanged: (value) => _filterStores(value),
           ),
         ),
@@ -306,6 +307,14 @@ class _FMCGSDStoresState extends State<FMCGSDStores> with SingleTickerProviderSt
       options.add(const Divider());
       options.add(_buildOption(context, 'Permanent Closed (PC)', 'PC', item));
     } else if (item['status_short_name'] == 'TC') {
+      options.add(_buildOption(context, 'Re Audit (RA)', 'RA', item));
+      options.add(const Divider());
+      options.add(_buildOption(context, 'Temporary Closed (TC)', 'TC2', item));
+      options.add(const Divider());
+      options.add(_buildOption(context, 'Permanent Closed (PC)', 'PC', item));
+      options.add(const Divider());
+      options.add(_buildOption(context, 'Consider as New Store (CANS)', 'CANS', item));
+    } else if (item['status_short_name'] == 'TC2') {
       options.add(_buildOption(context, 'Permanent Closed (PC)', 'PC', item));
       options.add(const Divider());
       options.add(_buildOption(context, 'Consider as New Store (CANS)', 'CANS', item));
@@ -345,7 +354,7 @@ class _FMCGSDStoresState extends State<FMCGSDStores> with SingleTickerProviderSt
 
   // @override
   // Future<void> didChangeDependencies() async {
-  //   super.didChangeDependencies();
+  //   super.didChangeDependencies();+
   //   _data = await dbManager.loadFMcgSdStores(_dbPath, _auditorId);
   // }
 
