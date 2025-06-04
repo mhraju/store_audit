@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:math_expressions/math_expressions.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:store_audit/presentation/screens/fmcg_sd/fmcg_sd_store_audit.dart';
 import 'package:store_audit/presentation/screens/tobacco/tobacco_new_entry.dart';
+import 'package:store_audit/presentation/screens/tobacco/tobacco_store_audit.dart';
 import 'package:store_audit/utility/show_alert.dart';
 import '../../../db/database_manager.dart';
 import '../../../utility/app_colors.dart';
@@ -17,6 +17,7 @@ class TobaccoSkuList extends StatefulWidget {
   final String shortCode;
   final String storeName;
   final String period;
+  final int priority;
   const TobaccoSkuList({
     super.key,
     required this.dbPath,
@@ -26,6 +27,7 @@ class TobaccoSkuList extends StatefulWidget {
     required this.shortCode,
     required this.storeName,
     required this.period,
+    required this.priority,
   });
 
   @override
@@ -62,32 +64,57 @@ class _TobaccoSkuListState extends State<TobaccoSkuList> {
 
     await Future.delayed(const Duration(seconds: 1));
 
-    final fetchedData = await dbManager.loadTobaccoStoreSkuList(widget.dbPath, widget.storeCode, widget.period);
+    final fetchedData = await dbManager.loadFMcgSdStoreSkuList(
+      widget.dbPath,
+      widget.storeCode,
+      widget.period,
+    );
 
     final prefs = await SharedPreferences.getInstance();
     List<String> editedItems = prefs.getStringList('editedItems') ?? [];
-    //print('color: checkList $editedItems');
-    // ✅ Reload stored colors for each SKU item explicitly from editedItems
+
+    // Restore stored colors
     Map<String, Color> restoredColors = {};
     for (var item in fetchedData) {
       String productCode = item['product_code'];
-      //print('color: check $itemName');
       if (editedItems.contains(productCode)) {
         int? colorValue = prefs.getInt("color_${widget.storeCode}_$productCode");
         restoredColors[productCode] = (colorValue != null) ? Color(colorValue) : Colors.grey.shade300;
-        //print('color: ok ${restoredColors[itemName]}');
       } else {
         restoredColors[productCode] = Colors.grey.shade300;
-        //print('color: Not ok ${restoredColors[itemName]}');
       }
     }
 
     savedSkus = prefs.getStringList('newEntry') ?? [];
 
+    // Make a mutable copy of fetchedData for sorting
+    final mutableFetchedData = List<Map<String, dynamic>>.from(fetchedData);
+
+    // Sort based on color priority: Grey -> Yellow -> Green
+    mutableFetchedData.sort((a, b) {
+      String codeA = a['product_code'];
+      String codeB = b['product_code'];
+      Color colorA = restoredColors[codeA] ?? Colors.grey.shade300;
+      Color colorB = restoredColors[codeB] ?? Colors.grey.shade300;
+
+      int getColorPriority(Color color) {
+        final int grey = Colors.grey.shade300.value;
+        final int yellow = Colors.yellow.shade300.value;
+        final int green = Colors.green.shade300.value;
+
+        if (color.value == grey) return 0;
+        if (color.value == yellow) return 1;
+        if (color.value == green) return 2;
+        return 3; // fallback for any other color
+      }
+
+      return getColorPriority(colorA).compareTo(getColorPriority(colorB));
+    });
+
     setState(() {
-      skuData = fetchedData;
-      filteredSkuData = fetchedData;
-      skuItemColors = restoredColors; // ✅ Restore colors here
+      skuData = mutableFetchedData;
+      filteredSkuData = mutableFetchedData;
+      skuItemColors = restoredColors;
       isLoading = false;
     });
   }
@@ -421,6 +448,7 @@ class _TobaccoSkuListState extends State<TobaccoSkuList> {
                                 : '',
                             skuItem['index'],
                             widget.period,
+                            1,
                           );
 
                           final closingStock = double.tryParse(closingStockController.text.trim())?.round() ?? 0;
@@ -818,6 +846,7 @@ class _TobaccoSkuListState extends State<TobaccoSkuList> {
                                 : '',
                             skuItem['index'],
                             widget.period,
+                            1,
                           );
 
                           final closingStock = double.tryParse(closingStockController.text.trim())?.round() ?? 0;
@@ -1130,6 +1159,7 @@ class _TobaccoSkuListState extends State<TobaccoSkuList> {
                                     shortCode: widget.shortCode,
                                     storeName: widget.storeName,
                                     period: widget.period,
+                                    priority: widget.priority,
                                   )),
                         ).then((value) {
                           _fetchSkuData(); // Call method to refresh database data
@@ -1187,13 +1217,14 @@ class _TobaccoSkuListState extends State<TobaccoSkuList> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => FmcgSdStoreAudit(
+        builder: (context) => TobaccoStoreAudit(
           dbPath: widget.dbPath,
           storeCode: widget.storeCode,
           auditorId: widget.auditorId,
           option: widget.option,
           shortCode: widget.shortCode,
           storeName: widget.storeName,
+          priority: widget.priority,
         ),
       ),
     );

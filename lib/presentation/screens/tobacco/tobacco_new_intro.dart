@@ -25,6 +25,7 @@ class TobaccoNewIntro extends StatefulWidget {
   final String shortCode;
   final String storeName;
   final String period;
+  final int priority;
   const TobaccoNewIntro({
     super.key,
     required this.dbPath,
@@ -34,6 +35,7 @@ class TobaccoNewIntro extends StatefulWidget {
     required this.shortCode,
     required this.storeName,
     required this.period,
+    required this.priority,
   });
 
   @override
@@ -51,9 +53,9 @@ class _TobaccoNewIntroState extends State<TobaccoNewIntro> {
   List<Map<String, dynamic>> packTypes = [];
   final ImagePicker _picker = ImagePicker();
   final List<File> _imageFiles = [];
+  late List<String> savedImgPaths;
   String? selectedCategoryCode;
   String? selectedCategoryName;
-  //String? selectedOption;
 
   TextEditingController otherCompanyController = TextEditingController();
 
@@ -183,78 +185,75 @@ class _TobaccoNewIntroState extends State<TobaccoNewIntro> {
         ShowAlert.showSnackBar(context, "Please select any Company.");
         return;
       }
-      // if (selectedOption == null) {
-      //   ShowAlert.showSnackBar(context, "Please select 'FMCG' or 'SD'.");
-      //   return;
-      // }
       if (selectedPack == null) {
         ShowAlert.showSnackBar(context, "Please select any Pack Type.");
         return;
       }
 
       if (_imageFiles.length == 4) {
+        String productCode = generateSecureSixDigitProductCode();
+        productCode = 'temp_${widget.auditorId}_$productCode';
         // Save image path in SharedPreferences
         final prefs = await SharedPreferences.getInstance();
-        List<String> savedPaths = prefs.getStringList('imagePaths') ?? []; // Get existing saved images
+        savedImgPaths = prefs.getStringList('imagePaths') ?? []; // Get existing saved images
         if (_imageFiles.isNotEmpty) {
           List<String> newPaths = _imageFiles.map((file) => p.basename(file.path)).toList();
-          savedPaths = {...savedPaths, ...newPaths}.toList();
+          savedImgPaths = {...savedImgPaths, ...newPaths}.toList();
         }
-        await prefs.setStringList('imagePaths', savedPaths); //
-        //print("✅ Final saved images: $savedPaths");
+        await prefs.setStringList('imagePaths', savedImgPaths); //
+        //print("Final saved images: $savedImgPaths");
 
-        String productCode = generateSecureSixDigitProductCode();
         //productCode = 'temp_intro_$productCode';
 
-        await dbManager.insertFMcgSdProductIntro(
+        await dbManager.insertToProductIntro(
           widget.dbPath,
           widget.auditorId,
           'TOBACCO',
-          'temp_${widget.auditorId}_$productCode',
+          productCode,
           selectedCategoryName!,
           selectedCompany!,
-          countryController.text.trim(),
-          brandController.text.trim(),
-          itemDescriptionController.text.trim(),
+          countryController.text.trim().toUpperCase(),
+          brandController.text.trim().toUpperCase(),
+          itemDescriptionController.text.trim().toUpperCase(),
           selectedPack!,
-          packSizeController.text.trim(),
-          promotypeController.text,
+          packSizeController.text.trim().toUpperCase(),
+          promotypeController.text.trim().toUpperCase(),
           mrpController.text,
-          _imageFiles[0].path,
-          _imageFiles[1].path,
-          _imageFiles[2].path,
-          _imageFiles[3].path,
+          savedImgPaths[0],
+          savedImgPaths[1],
+          savedImgPaths[2],
+          savedImgPaths[3],
         );
 
-        await dbManager.insertFMcgSdStoreProduct(
+        await dbManager.insertToStoreProduct(
           context,
           widget.dbPath,
           widget.storeCode,
           widget.auditorId,
-          'temp_${widget.auditorId}_$productCode',
+          productCode,
+          1,
         );
 
-        await dbManager.insertFMcgSdProducts(
+        await dbManager.insertToProducts(
           widget.dbPath,
           widget.auditorId,
           'TOBACCO',
-          'temp_${widget.auditorId}_$productCode',
+          productCode,
           selectedCategoryCode!,
           selectedCategoryName!,
           selectedCompany!,
-          brandController.text,
-          countryController.text,
-          itemDescriptionController.text,
+          brandController.text.trim().toUpperCase(),
+          countryController.text.trim().toUpperCase(),
+          itemDescriptionController.text.trim().toUpperCase(),
           selectedPack!,
-          packSizeController.text,
-          promotypeController.text,
+          packSizeController.text.trim().toUpperCase(),
+          promotypeController.text.trim().toUpperCase(),
           mrpController.text,
         );
 
         ShowAlert.showSnackBar(context, 'Product intro submitted successfully!');
 
         setState(() {
-          //selectedOption = null;
           selectedCompany = null;
           countryController.clear();
           brandController.clear();
@@ -266,6 +265,7 @@ class _TobaccoNewIntroState extends State<TobaccoNewIntro> {
           selectedCategoryCode = null;
           selectedCategoryName = null;
           _imageFiles.clear();
+          savedImgPaths.clear();
         });
       } else {
         ShowAlert.showSnackBar(context, "You can upload 4 images.");
@@ -509,6 +509,7 @@ class _TobaccoNewIntroState extends State<TobaccoNewIntro> {
                           shortCode: widget.shortCode,
                           storeName: widget.storeName,
                           period: widget.period,
+                          priority: widget.priority,
                         ),
                       ),
                     );
@@ -539,6 +540,7 @@ class _TobaccoNewIntroState extends State<TobaccoNewIntro> {
                           shortCode: widget.shortCode,
                           storeName: widget.storeName,
                           period: widget.period,
+                          priority: widget.priority,
                         ),
                       ),
                     );

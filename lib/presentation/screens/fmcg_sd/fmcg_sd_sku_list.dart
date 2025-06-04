@@ -445,6 +445,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                                 : '',
                             skuItem['index'],
                             widget.period,
+                            1,
                           );
 
                           final closingStock = double.tryParse(closingStockController.text.trim())?.round() ?? 0;
@@ -842,6 +843,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                                 : '',
                             skuItem['index'],
                             widget.period,
+                            1,
                           );
 
                           final closingStock = double.tryParse(closingStockController.text.trim())?.round() ?? 0;

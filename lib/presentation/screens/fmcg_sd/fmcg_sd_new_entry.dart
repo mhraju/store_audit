@@ -156,12 +156,13 @@ class _FmcgSdNewEntryState extends State<FmcgSdNewEntry> {
                         ElevatedButton(
                           onPressed: () async {
                             // ✅ Insert or Update SKU data in the database
-                            await dbManager.insertFMcgSdStoreProduct(
+                            await dbManager.insertToStoreProduct(
                               context,
                               widget.dbPath,
                               widget.storeCode,
                               widget.auditorId,
                               skuItem['code'],
+                              1,
                             );
 
                             final prefs = await SharedPreferences.getInstance();

@@ -594,7 +594,7 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
 
                             // Update the store data in the database
                             final dbManager = DatabaseManager();
-                            await dbManager.updateFmcgSdStoreDetails(
+                            await dbManager.updateStoreDetails(
                                 widget.dbPath,
                                 widget.storeData['code'],
                                 widget.auditorId, // Store ID

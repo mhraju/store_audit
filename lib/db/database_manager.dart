@@ -86,7 +86,7 @@ class DatabaseManager {
   }
 
   // Function to update store details
-  Future<void> updateFmcgSdStoreDetails(
+  Future<void> updateStoreDetails(
     String dbPath,
     String storeCode,
     String auditorId,
@@ -111,7 +111,6 @@ class DatabaseManager {
           'land_mark': landmark,
           'store_photo': store_photo,
           'new_geo': newGeo,
-          'updated_by': auditorId,
           'updated_at': DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
         },
         where: 'code COLLATE NOCASE = ?', // Ensures case-insensitive matching
@@ -129,7 +128,7 @@ class DatabaseManager {
     }
   }
 
-  Future<void> closeOrUpdateFmcgSdStore(
+  Future<void> closeOrUpdateStore(
     String dbPath,
     String storeCode,
     String auditorId,
@@ -139,11 +138,11 @@ class DatabaseManager {
     String statusShortName,
     String selfie,
     String attachment,
+    int priority,
   ) async {
     try {
       // Open the database
       final Database db = await openDatabase(dbPath);
-
       // Update the store
       await db.update(
         'stores', // Table name
@@ -151,33 +150,30 @@ class DatabaseManager {
           'update_status': updateStatus,
           'status_name': statusName,
           'status_short_name': statusShortName,
-          'updated_by': auditorId,
           'updated_at': DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
         },
         where: 'code COLLATE NOCASE = ?', // Ensures case-insensitive matching
         whereArgs: [storeCode],
       );
-      //print('Store table updated successfully for store_code: $storeCode');
 
       // Update the store schedule
       await db.update(
         'store_schedules', // Table name
         {
+          'priority': priority,
           'selfie': selfie,
+          'status': status,
           'attachment': attachment,
-          'updated_by': auditorId,
+          'update_status': updateStatus,
           'updated_at': DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
         },
-        where: 'store_code COLLATE NOCASE = ?', // Ensures case-insensitive matching
-        whereArgs: [storeCode],
+        where: 'store_code COLLATE NOCASE = ? AND priority = ?', // Combined condition
+        whereArgs: [storeCode, priority],
       );
-      //print('Store Schedules table updated successfully for store_code: $storeCode');
 
       // Close the database
       await db.close();
     } catch (e) {
-      // Handle errors
-      //print('Error updating store details: $e');
       throw Exception('Failed to update store details: $e');
     }
   }
@@ -363,6 +359,7 @@ class DatabaseManager {
     String avgSaleLastToLastMonth,
     String panel,
     String period,
+    int updateStatus,
   ) async {
     try {
       final Database db = await openDatabase(dbPath);
@@ -398,7 +395,7 @@ class DatabaseManager {
             'sale_last_month': avgSaleLastMonth,
             'sale_last_to_last_month': avgSaleLastToLastMonth,
             'status': '1',
-            'updated_by': auditorId,
+            'update_status': updateStatus,
             'updated_at': DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
           },
           where: '''
@@ -429,6 +426,7 @@ class DatabaseManager {
             'sale_last_month': avgSaleLastMonth,
             'sale_last_to_last_month': avgSaleLastToLastMonth,
             'status': '0',
+            'update_status': updateStatus,
             'created_by': auditorId,
             'created_at': DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
           },
@@ -464,6 +462,7 @@ class DatabaseManager {
     String avgSaleLastToLastMonth,
     String panel,
     String period,
+    int updateStatus,
   ) async {
     try {
       final Database db = await openDatabase(dbPath);
@@ -502,7 +501,7 @@ class DatabaseManager {
             'sale_last_month': avgSaleLastMonth,
             'sale_last_to_last_month': avgSaleLastToLastMonth,
             'status': '1',
-            'updated_by': auditorId,
+            'update_status': updateStatus,
             'updated_at': DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
           },
           where: '''
@@ -536,6 +535,7 @@ class DatabaseManager {
             'sale_last_month': avgSaleLastMonth,
             'sale_last_to_last_month': avgSaleLastToLastMonth,
             'status': '0',
+            'update_status': updateStatus,
             'created_by': auditorId,
             'created_at': DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
           },
@@ -616,12 +616,13 @@ class DatabaseManager {
   }
 
   // Insert a record into 'store_products' table
-  Future<void> insertFMcgSdStoreProduct(
+  Future<void> insertToStoreProduct(
     BuildContext context,
     String dbPath,
     String storeCode,
     String auditorId,
     String productCode,
+    int updateStatus,
   ) async {
     try {
       // Open the database
@@ -641,6 +642,7 @@ class DatabaseManager {
         await db.insert(
           'store_products',
           {
+            'update_status': updateStatus,
             'store_code': storeCode,
             'product_code': productCode,
             'created_by': auditorId, // Nullable
@@ -661,7 +663,7 @@ class DatabaseManager {
   }
 
   // Insert a record into 'product_introductions' table
-  Future<void> insertFMcgSdProductIntro(
+  Future<void> insertToProductIntro(
     String dbPath,
     String auditorId,
     String index,
@@ -720,7 +722,7 @@ class DatabaseManager {
     }
   }
 
-  Future<void> insertFMcgSdProducts(
+  Future<void> insertToProducts(
     String dbPath,
     String auditorId,
     String index,

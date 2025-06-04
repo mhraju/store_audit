@@ -205,7 +205,7 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
         String productCode = generateSecureSixDigitProductCode();
         //productCode = 'temp_intro_$productCode';
 
-        await dbManager.insertFMcgSdProductIntro(
+        await dbManager.insertToProductIntro(
           widget.dbPath,
           widget.auditorId,
           selectedOption!,
@@ -225,15 +225,16 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
           _imageFiles[3].path,
         );
 
-        await dbManager.insertFMcgSdStoreProduct(
+        await dbManager.insertToStoreProduct(
           context,
           widget.dbPath,
           widget.storeCode,
           widget.auditorId,
           'temp_${widget.auditorId}_$productCode',
+          1,
         );
 
-        await dbManager.insertFMcgSdProducts(
+        await dbManager.insertToProducts(
           widget.dbPath,
           widget.auditorId,
           selectedOption!,

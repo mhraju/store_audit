@@ -196,6 +196,8 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
       }
 
       if (_imageFiles.length == 4) {
+        String productCode = generateSecureSixDigitProductCode();
+        productCode = 'temp_${widget.auditorId}_$productCode';
         // Save image path in SharedPreferences
         final prefs = await SharedPreferences.getInstance();
         savedImgPaths = prefs.getStringList('imagePaths') ?? []; // Get existing saved images
@@ -204,16 +206,14 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
           savedImgPaths = {...savedImgPaths, ...newPaths}.toList();
         }
         await prefs.setStringList('imagePaths', savedImgPaths); //
-        print("✅ Final saved images: $savedImgPaths");
-
-        String productCode = generateSecureSixDigitProductCode();
+        //print("Final saved images: $savedImgPaths");
         //productCode = 'temp_intro_$productCode';
 
-        await dbManager.insertFMcgSdProductIntro(
+        await dbManager.insertToProductIntro(
           widget.dbPath,
           widget.auditorId,
           selectedOption!,
-          'temp_${widget.auditorId}_$productCode',
+          productCode,
           selectedCategoryName!,
           selectedCompany!,
           countryController.text.trim().toUpperCase(),
@@ -229,19 +229,20 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
           savedImgPaths[3],
         );
 
-        await dbManager.insertFMcgSdStoreProduct(
+        await dbManager.insertToStoreProduct(
           context,
           widget.dbPath,
           widget.storeCode,
           widget.auditorId,
-          'temp_${widget.auditorId}_$productCode',
+          productCode,
+          1,
         );
 
-        await dbManager.insertFMcgSdProducts(
+        await dbManager.insertToProducts(
           widget.dbPath,
           widget.auditorId,
           selectedOption!,
-          'temp_${widget.auditorId}_$productCode',
+          productCode,
           selectedCategoryCode!,
           selectedCategoryName!,
           selectedCompany!,
@@ -269,6 +270,7 @@ class _FmcgSdNewIntroState extends State<FmcgSdNewIntro> {
           selectedCategoryCode = null;
           selectedCategoryName = null;
           _imageFiles.clear();
+          savedImgPaths.clear();
         });
 
         // OPTION 2: **Refresh the Page After Submission**

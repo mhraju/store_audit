@@ -309,6 +309,14 @@ class _TobaccoStoreListState extends State<TobaccoStoreList> with SingleTickerPr
       options.add(const Divider());
       options.add(_buildOption(context, 'Permanent Closed (PC)', 'PC', item));
     } else if (item['status_short_name'] == 'TC') {
+      options.add(_buildOption(context, 'Re Audit (RA)', 'RA', item));
+      options.add(const Divider());
+      options.add(_buildOption(context, 'Temporary Closed (TC)', 'TC2', item));
+      options.add(const Divider());
+      options.add(_buildOption(context, 'Permanent Closed (PC)', 'PC', item));
+      options.add(const Divider());
+      options.add(_buildOption(context, 'Consider as New Store (CANS)', 'CANS', item));
+    } else if (item['status_short_name'] == 'TC2') {
       options.add(_buildOption(context, 'Permanent Closed (PC)', 'PC', item));
       options.add(const Divider());
       options.add(_buildOption(context, 'Consider as New Store (CANS)', 'CANS', item));
@@ -338,7 +346,13 @@ class _TobaccoStoreListState extends State<TobaccoStoreList> with SingleTickerPr
           context,
           MaterialPageRoute(
               builder: (context) => TobaccoStoreDetails(
-                  storeList: _data, storeData: item, dbPath: _dbPath, auditorId: _auditorId, option: option, shortCode: shortCode)),
+                  storeList: _data,
+                  storeData: item,
+                  dbPath: _dbPath,
+                  auditorId: _auditorId,
+                  option: option,
+                  shortCode: shortCode,
+                  priority: widget.priority)),
         ).then((value) {
           _refreshData(); // Call method to refresh database data
         });

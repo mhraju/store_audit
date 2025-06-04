@@ -5,20 +5,21 @@ import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:store_audit/presentation/screens/tobacco/tobacco_store_list.dart';
 import '../../../db/database_manager.dart';
 import '../../../utility/app_colors.dart';
 import '../../../utility/show_alert.dart';
 import '../../../utility/show_progress.dart';
-import 'fmcg_sd_store_list.dart';
 
-class FmcgSdStoreAudit extends StatefulWidget {
+class TobaccoStoreAudit extends StatefulWidget {
   final String dbPath;
   final String storeCode;
   final String auditorId;
   final String option;
   final String shortCode;
   final String storeName;
-  const FmcgSdStoreAudit({
+  final int priority;
+  const TobaccoStoreAudit({
     super.key,
     required this.dbPath,
     required this.storeCode,
@@ -26,13 +27,14 @@ class FmcgSdStoreAudit extends StatefulWidget {
     required this.option,
     required this.shortCode,
     required this.storeName,
+    required this.priority,
   });
 
   @override
-  State<FmcgSdStoreAudit> createState() => _FmcgSdStoreAuditState();
+  State<TobaccoStoreAudit> createState() => _TobaccoStoreAuditState();
 }
 
-class _FmcgSdStoreAuditState extends State<FmcgSdStoreAudit> {
+class _TobaccoStoreAuditState extends State<TobaccoStoreAudit> {
   final _remarksController = TextEditingController();
   final List<File> _imageFiles = [];
   List<String> imagePaths = [];
@@ -95,7 +97,7 @@ class _FmcgSdStoreAuditState extends State<FmcgSdStoreAudit> {
       widget.shortCode,
       p.basename(_selfieImage!.path),
       imagePaths.where((e) => e.trim().isNotEmpty).join(','), // Use comma-separated string
-      1,
+      widget.priority,
     );
 
     ShowAlert.showSnackBar(context, 'Store is updated successfully!');
@@ -103,9 +105,10 @@ class _FmcgSdStoreAuditState extends State<FmcgSdStoreAudit> {
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
-        builder: (context) => FMCGSDStores(
+        builder: (context) => TobaccoStoreList(
           dbPath: dbPath,
           auditorId: widget.auditorId,
+          priority: 1,
         ),
       ),
       (route) => route.isFirst, // Keeps only the first route (HomeScreen)
@@ -135,11 +138,11 @@ class _FmcgSdStoreAuditState extends State<FmcgSdStoreAudit> {
 
         final prefs = await SharedPreferences.getInstance();
         List<String> savedPaths = prefs.getStringList('imagePaths') ?? [];
-        //  print('prev images $savedPaths');
+        //print('prev images $savedPaths');
         savedPaths.add(newFileName);
         await prefs.setStringList('imagePaths', savedPaths);
 
-        //  print('new images $savedPaths');
+        //print('new images $savedPaths');
 
         setState(() {
           _selfieImage = newImage;

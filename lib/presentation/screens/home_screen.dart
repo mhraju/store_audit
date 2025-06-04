@@ -348,13 +348,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Icons.smoking_rooms,
                 label: 'Tobacco',
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => TobaccoAuditScreen(dbPath: widget.dbPath, auditorId: widget.auditorId),
-                    ),
-                  );
-                  //ShowAlert.showSnackBar(context, 'Development On Going');
+                  // Navigator.push(
+                  //   context,
+                  //   MaterialPageRoute(
+                  //     builder: (context) => TobaccoAuditScreen(dbPath: widget.dbPath, auditorId: widget.auditorId),
+                  //   ),
+                  // );
+                  ShowAlert.showSnackBar(context, 'Development On Going');
                 },
               ),
             ],

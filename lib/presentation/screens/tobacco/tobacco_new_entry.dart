@@ -15,6 +15,7 @@ class TobaccoNewEntry extends StatefulWidget {
   final String shortCode;
   final String storeName;
   final String period;
+  final int priority;
   const TobaccoNewEntry({
     super.key,
     required this.dbPath,
@@ -24,6 +25,7 @@ class TobaccoNewEntry extends StatefulWidget {
     required this.shortCode,
     required this.storeName,
     required this.period,
+    required this.priority,
   });
 
   @override
@@ -156,34 +158,19 @@ class _TobaccoNewEntryState extends State<TobaccoNewEntry> {
                         ElevatedButton(
                           onPressed: () async {
                             // ✅ Insert or Update SKU data in the database
-                            await dbManager.insertFMcgSdStoreProduct(
+                            await dbManager.insertToStoreProduct(
                               context,
                               widget.dbPath,
                               widget.storeCode,
                               widget.auditorId,
                               skuItem['code'],
+                              1,
                             );
 
                             final prefs = await SharedPreferences.getInstance();
                             List<String> savedPaths = prefs.getStringList('newEntry') ?? [];
                             savedPaths.add(skuItem['code']);
                             await prefs.setStringList('newEntry', savedPaths);
-
-                            // await dbManager.insertOrUpdateFmcgSdSkuDetails(
-                            //   widget.dbPath,
-                            //   widget.storeCode,
-                            //   widget.auditorId,
-                            //   skuItem['code'],
-                            //   skuItem['openstock']?.toString() ?? '0',
-                            //   skuItem['purchase']?.toString() ?? '0',
-                            //   skuItem['closestock']?.toString() ?? '0',
-                            //   skuItem['sale']?.toString() ?? '0',
-                            //   skuItem['wholesale']?.toString() ?? '0',
-                            //   skuItem['mrp']?.toString() ?? '0',
-                            //   skuItem['sale_last_month']?.toString() ?? '0',
-                            //   skuItem['Sale_last_to_last_month']?.toString() ??
-                            //       '0',
-                            // );
 
                             // ShowAlert.showSnackBar(context,
                             //     'New SKU inserted and updated successfully');
@@ -301,6 +288,7 @@ class _TobaccoNewEntryState extends State<TobaccoNewEntry> {
                               shortCode: widget.shortCode,
                               storeName: widget.storeName,
                               period: widget.period,
+                              priority: widget.priority,
                             ),
                           ),
                         );
@@ -357,6 +345,7 @@ class _TobaccoNewEntryState extends State<TobaccoNewEntry> {
           shortCode: widget.shortCode,
           storeName: widget.storeName,
           period: widget.period,
+          priority: widget.priority,
         ),
       ),
     );
