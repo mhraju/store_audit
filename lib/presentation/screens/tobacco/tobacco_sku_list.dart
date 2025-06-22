@@ -157,57 +157,13 @@ class _TobaccoSkuListState extends State<TobaccoSkuList> {
       return value.toString(); // Otherwise, return the actual value as a string
     }
 
-// Initialize controllers with improved logic
+    // Initialize controllers with improved logic
     TextEditingController purchaseController = TextEditingController(text: getTextFieldValue(skuItem['purchase']));
-    TextEditingController closingStockController = TextEditingController(text: getTextFieldValue(skuItem['closestock']));
-    TextEditingController wholesaleController = TextEditingController(text: getTextFieldValue(skuItem['wholesale']));
-    TextEditingController mrpController = TextEditingController(text: getTextFieldValue(skuItem['mrp']));
-    TextEditingController avgSaleLastMonthController = TextEditingController(text: getTextFieldValue(skuItem['sale_last_month']));
-    TextEditingController avgSaleLastToLastMonthController = TextEditingController(text: getTextFieldValue(skuItem['sale_last_to_last_month']));
-
-    int saleValue = int.tryParse(skuItem['sale']?.toString() ?? '0') ?? 0; // Initialize properly
-
-    // print('Check open stock ${skuItem['prev_closestock'].toString()}  --- ${skuItem['openstock']}');
-    //
-    // print('Check mrp ${skuItem['mrp']} ---- ${skuItem['prev_mrp']}');
-
-    void updateSaleValue() {
-      int openingStock = int.tryParse((skuItem['openstock'] != null && skuItem['openstock'].toString().trim().isNotEmpty)
-              ? skuItem['openstock'].toString()
-              : skuItem['prev_closestock'].toString()) ??
-          0;
-
-      int purchase = double.tryParse(purchaseController.text.trim())?.round() ?? 0;
-
-      if (closingStockController.text.trim().isNotEmpty) {
-        int closingStock = double.tryParse(closingStockController.text.trim())?.round() ?? 0;
-        int calculatedSale = (openingStock + purchase) - closingStock;
-
-        // if (calculatedSale < 0) {
-        //   // ✅ Reset Closing Stock (CS) to 0
-        //   setState(() {
-        //     closingStockController.text = '0'; // Reset CS field
-        //     saleValue = calculatedSale; // Reset Sale value
-        //   });
-        //
-        //   ShowAlert.showAlertDialog(
-        //       context, "Invalid Input", "Sale cannot be negative!\nClosing Stock (CS) has been reset to 0.\n\nPlease check your inputs.");
-        // } else {
-        //   // ✅ Update sale value correctly
-        //   setState(() {
-        //     saleValue = calculatedSale;
-        //   });
-        // }
-        setState(() {
-          saleValue = calculatedSale;
-        });
-      } else {
-        //print("Closing stock is empty on Sale");
-        setState(() {
-          saleValue = openingStock + purchase;
-        });
-      }
-    }
+    TextEditingController stickPriceController = TextEditingController(text: getTextFieldValue(skuItem['stick_price']));
+    TextEditingController packPriceController = TextEditingController(text: getTextFieldValue(skuItem['pack_price']));
+    TextEditingController avgSaleDailyThisWeekController = TextEditingController(text: getTextFieldValue(skuItem['sale_daily_this_week']));
+    TextEditingController avgSaleDailyLastWeekController = TextEditingController(text: getTextFieldValue(skuItem['sale_daily_last_week']));
+    TextEditingController avgSaleDailyLastMonthController = TextEditingController(text: getTextFieldValue(skuItem['sale_daily_last_month']));
 
     void showValueEntryPopup(BuildContext context, String type) {
       final TextEditingController inputController = TextEditingController();
@@ -243,18 +199,9 @@ class _TobaccoSkuListState extends State<TobaccoSkuList> {
                   Parser p = Parser();
                   Expression exp = p.parse(inputController.text);
                   double result = exp.evaluate(EvaluationType.REAL, ContextModel());
-
-                  // Add to previous value
-                  if (type == 'cs') {
-                    double prevValue = double.tryParse(closingStockController.text) ?? 0;
-                    double total = prevValue + result;
-                    closingStockController.text = total.toStringAsFixed(0);
-                  } else {
-                    double prevValue = double.tryParse(purchaseController.text) ?? 0;
-                    double total = prevValue + result;
-                    purchaseController.text = total.toStringAsFixed(0);
-                  }
-                  updateSaleValue();
+                  double prevValue = double.tryParse(purchaseController.text) ?? 0;
+                  double total = prevValue + result;
+                  purchaseController.text = total.toStringAsFixed(0);
                   Navigator.pop(context);
                 } catch (e) {
                   Navigator.pop(context);
@@ -301,15 +248,14 @@ class _TobaccoSkuListState extends State<TobaccoSkuList> {
                     const SizedBox(height: 16),
 
                     _buildNonEditableField(
-                      'Opening Stock (OS)',
-                      (skuItem['openstock'] != null && skuItem['openstock'].toString().trim().isNotEmpty
-                              ? skuItem['openstock']
-                              : skuItem['prev_closestock'])
+                      'Last Audit Date',
+                      (skuItem['last_audit'] != null && skuItem['last_audit'].toString().trim().isNotEmpty
+                              ? skuItem['last_audit']
+                              : skuItem['last_audit'])
                           .toString(),
                     ),
 
                     // Editable Fields
-                    //onChanged: updateSaleValue
                     _buildEditableField(
                       'Purchase',
                       skuItem['purchase']?.toString() ?? '',
@@ -318,26 +264,15 @@ class _TobaccoSkuListState extends State<TobaccoSkuList> {
                       controller: purchaseController,
                       onTap: () => showValueEntryPopup(context, 'ps'),
                     ),
-                    _buildEditableField(
-                      'Closing Stock (CS)',
-                      skuItem['closestock']?.toString() ?? '',
-                      itemName,
-                      skuItem,
-                      controller: closingStockController,
-                      onTap: () => showValueEntryPopup(context, 'cs'),
-                    ),
 
-                    // Sale - Non Editable
-                    _buildNonEditableField('Sale', saleValue.toString()),
-
-                    _buildEditableField('Wholesale (WS)', skuItem['wholesale']?.toString() ?? '', itemName, skuItem,
-                        controller: wholesaleController // ✅ Pass the roundUp parameter
-                        ),
-                    _buildEditableField('MRP', skuItem['mrp']?.toString() ?? '', itemName, skuItem, controller: mrpController),
-                    _buildEditableField('Avg Sale Last Month', skuItem['sale_last_month']?.toString() ?? '', itemName, skuItem,
-                        controller: avgSaleLastMonthController),
-                    _buildEditableField('Avg Sale Last to Last Month', skuItem['sale_last_to_last_month']?.toString() ?? '', itemName, skuItem,
-                        controller: avgSaleLastToLastMonthController),
+                    _buildEditableField('Pack Price', skuItem['pack_price']?.toString() ?? '', itemName, skuItem, controller: packPriceController),
+                    _buildEditableField('Stick Price', skuItem['stick_price']?.toString() ?? '', itemName, skuItem, controller: stickPriceController),
+                    _buildEditableField('Avg Daily Sale This Week', skuItem['sale_daily_this_week']?.toString() ?? '', itemName, skuItem,
+                        controller: avgSaleDailyThisWeekController),
+                    _buildEditableField('Avg Daily Sale Last Week', skuItem['sale_daily_last_week']?.toString() ?? '', itemName, skuItem,
+                        controller: avgSaleDailyLastWeekController),
+                    _buildEditableField('Avg Daily Sale Last Month', skuItem['sale_daily_last_month']?.toString() ?? '', itemName, skuItem,
+                        controller: avgSaleDailyLastMonthController),
 
                     const SizedBox(height: 16),
 
@@ -345,129 +280,52 @@ class _TobaccoSkuListState extends State<TobaccoSkuList> {
                     Center(
                       child: ElevatedButton(
                         onPressed: () async {
-                          if (closingStockController.text.trim().isNotEmpty) {
-                            //print("Closing stock contains data.");
-                            int closingStock = double.tryParse(closingStockController.text.trim())?.round() ?? 0;
-
-                            if (closingStock == 0) {
-                              mrpController.text = '0';
-                            } else {
-                              if (mrpController.text.trim().isNotEmpty) {
-                                double? newMrp = double.tryParse(mrpController.text.trim());
-
-                                double lastMrpFromDb = double.tryParse((skuItem['mrp']?.toString().isNotEmpty == true)
-                                        ? skuItem['mrp'].toString()
-                                        : (skuItem['prev_mrp']?.toString().isNotEmpty == true ? skuItem['prev_mrp'].toString() : '0')) ??
-                                    0;
-
-                                //print('$newMrp _ $lastMrpFromDb _ ${skuItem['prev_mrp']}');
-
-                                if (newMrp == null || newMrp < 0) {
-                                  mrpController.text = lastMrpFromDb.toString();
-                                  return;
-                                }
-
-                                if (lastMrpFromDb != 0.0) {
-                                  double minAllowed = lastMrpFromDb * 0.8, maxAllowed = lastMrpFromDb * 1.2;
-
-                                  if ((newMrp < minAllowed || newMrp > maxAllowed) && !isProceed) {
-                                    _showConfirmationDialog(
-                                            "Invalid MRP",
-                                            "The new MRP ($newMrp) is outside the allowed 20% deviation range of previous MRP ($lastMrpFromDb).\n\n"
-                                                "Allowed range: $minAllowed - $maxAllowed.\n"
-                                                "Do you want to proceed anyway?")
-                                        .then((proceed) {
-                                      if (proceed) {
-                                        // ✅ User chose "Continue", proceed with the update
-                                        //_continueUpdateProcess();
-                                        setState(() {
-                                          isProceed = true;
-                                          mrpController.text = newMrp.toString();
-                                        });
-                                      } else {
-                                        // ✅ User chose "OK", reset MRP
-                                        setState(() {
-                                          isProceed = true;
-                                          mrpController.text = lastMrpFromDb.toString();
-                                        });
-                                      }
-                                    });
-                                    return; // Prevent immediate continuation
-                                  }
-                                }
-                              }
-                            }
-
-                            // Ensure MRP is provided if closing stock > 0
-                            // if (closingStock > 0 && (double.tryParse(mrpController.text.trim()) ?? 0) == 0) {
-                            //   ShowAlert.showAlertDialog(context, "MRP Required", "You must enter an MRP value when Closing Stock is greater than 0.");
-                            // }
-
-                            if (wholesaleController.text.trim().isNotEmpty) {
-                              // wholesale check
-                              int wholesale = double.tryParse(wholesaleController.text.trim())?.round() ?? 0;
-
-                              //print('sal: $saleValue _ $wholesale');
-                              if (wholesale > saleValue) {
-                                // ✅ Show an alert if Wholesale is greater than Sale
-                                ShowAlert.showAlertDialog(
-                                    context, "Invalid Input", "Wholesale cannot be more than Total Sales!\nPlease enter a valid value.");
-                                return; // ✅ Stop execution if validation fails
-                              }
-                            }
-                          } else {
-                            //print("Closing stock is empty.");
-                          }
-
                           // ✅ Insert or Update SKU data in the database
-                          await dbManager.insertOrUpdateFmcgSkuDetails(
-                            widget.dbPath,
-                            widget.storeCode,
-                            widget.auditorId,
-                            skuItem['product_code'],
-                            (skuItem['openstock'] != null && skuItem['openstock'].toString().trim().isNotEmpty
-                                    ? skuItem['openstock']
-                                    : skuItem['prev_closestock'])
-                                .toString(),
-                            purchaseController.text.trim().isNotEmpty
-                                ? (double.tryParse(purchaseController.text.trim())?.round() ?? 0).toString()
-                                : '',
-                            closingStockController.text.trim().isNotEmpty
-                                ? (double.tryParse(closingStockController.text.trim())?.round() ?? 0).toString()
-                                : '',
-                            saleValue.toString(),
-                            wholesaleController.text.trim().isNotEmpty
-                                ? (double.tryParse(wholesaleController.text.trim())?.round() ?? 0).toString()
-                                : '',
-                            mrpController.text.trim().isNotEmpty ? mrpController.text : '',
-                            avgSaleLastMonthController.text.trim().isNotEmpty
-                                ? (double.tryParse(avgSaleLastMonthController.text.trim())?.round() ?? 0).toString()
-                                : '',
-                            avgSaleLastToLastMonthController.text.trim().isNotEmpty
-                                ? (double.tryParse(avgSaleLastToLastMonthController.text.trim())?.round() ?? 0).toString()
-                                : '',
-                            skuItem['index'],
-                            widget.period,
-                            1,
-                          );
+                          // await dbManager.insertOrUpdateFmcgSkuDetails(
+                          //   widget.dbPath,
+                          //   widget.storeCode,
+                          //   widget.auditorId,
+                          //   skuItem['product_code'],
+                          //   (skuItem['openstock'] != null && skuItem['openstock'].toString().trim().isNotEmpty
+                          //           ? skuItem['openstock']
+                          //           : skuItem['prev_closestock'])
+                          //       .toString(),
+                          //   purchaseController.text.trim().isNotEmpty
+                          //       ? (double.tryParse(purchaseController.text.trim())?.round() ?? 0).toString()
+                          //       : '',
+                          //   packPriceController.text.trim().isNotEmpty
+                          //       ? (double.tryParse(packPriceController.text.trim())?.round() ?? 0).toString()
+                          //       : '',
+                          //   stickPriceController.text.trim().isNotEmpty
+                          //       ? (double.tryParse(stickPriceController.text.trim())?.round() ?? 0).toString()
+                          //       : '',
+                          //   avgSaleDailyThisWeekController.text.trim().isNotEmpty
+                          //       ? (double.tryParse(avgSaleDailyThisWeekController.text.trim())?.round() ?? 0).toString()
+                          //       : '',
+                          //   avgSaleDailyLastWeekController.text.trim().isNotEmpty
+                          //       ? (double.tryParse(avgSaleDailyLastWeekController.text.trim())?.round() ?? 0).toString()
+                          //       : '',
+                          //   avgSaleDailyLastMonthController.text.trim().isNotEmpty
+                          //       ? (double.tryParse(avgSaleDailyLastMonthController.text.trim())?.round() ?? 0).toString()
+                          //       : '',
+                          //   skuItem['index'],
+                          //   widget.period,
+                          //   1,
+                          // );
 
-                          final closingStock = double.tryParse(closingStockController.text.trim())?.round() ?? 0;
-                          final mrp = double.tryParse(mrpController.text.trim())?.round() ?? 0;
-
-                          if ((closingStock >= 0) &&
-                              purchaseController.text.trim().isNotEmpty &&
-                              closingStockController.text.trim().isNotEmpty &&
-                              mrp >= (closingStock > 0 ? 1 : 0) &&
-                              saleValue >= 0 &&
-                              wholesaleController.text.trim().isNotEmpty &&
-                              avgSaleLastMonthController.text.trim().isNotEmpty &&
-                              avgSaleLastToLastMonthController.text.trim().isNotEmpty) {
-                            _saveColorStatus(skuItem['product_code'], Colors.green.shade300);
+                          if (purchaseController.text.trim().isNotEmpty &&
+                              packPriceController.text.trim().isNotEmpty &&
+                              stickPriceController.text.trim().isNotEmpty &&
+                              avgSaleDailyThisWeekController.text.trim().isNotEmpty &&
+                              avgSaleDailyLastWeekController.text.trim().isNotEmpty &&
+                              avgSaleDailyLastMonthController.text.trim().isNotEmpty) {
+                            _saveColorStatus(skuItem['product_code'], Colors.yellow.shade300);
                           } else if (purchaseController.text.trim().isNotEmpty ||
-                              closingStockController.text.trim().isNotEmpty ||
-                              mrpController.text.trim().isNotEmpty ||
-                              avgSaleLastMonthController.text.trim().isNotEmpty ||
-                              avgSaleLastToLastMonthController.text.trim().isNotEmpty) {
+                              packPriceController.text.trim().isNotEmpty ||
+                              stickPriceController.text.trim().isNotEmpty ||
+                              avgSaleDailyThisWeekController.text.trim().isNotEmpty ||
+                              avgSaleDailyLastWeekController.text.trim().isNotEmpty ||
+                              avgSaleDailyLastMonthController.text.trim().isNotEmpty) {
                             _saveColorStatus(skuItem['product_code'], Colors.yellow.shade300);
                           } else {
                             _saveColorStatus(skuItem['product_code'], Colors.grey.shade300);
@@ -496,7 +354,7 @@ class _TobaccoSkuListState extends State<TobaccoSkuList> {
     );
   }
 
-  void _showSdBottomSheet(Map<String, dynamic> skuItem) {
+  void _showBottomSheetForTwo(Map<String, dynamic> skuItem) {
     // Extract values safely with default values
     String itemName = skuItem['item_description'] ?? 'Unknown Item';
     const SizedBox(height: 24);
@@ -510,56 +368,13 @@ class _TobaccoSkuListState extends State<TobaccoSkuList> {
       return value.toString(); // Otherwise, return the actual value as a string
     }
 
-// Initialize controllers with improved logic
+    // Initialize controllers with improved logic
     TextEditingController purchaseController = TextEditingController(text: getTextFieldValue(skuItem['purchase']));
-    TextEditingController closingStockController = TextEditingController(text: getTextFieldValue(skuItem['closestock']));
-    TextEditingController chilledStockController = TextEditingController(text: getTextFieldValue(skuItem['chilled_stock']));
-    TextEditingController chilledFaceController = TextEditingController(text: getTextFieldValue(skuItem['chilled_face']));
-    TextEditingController warmFaceController = TextEditingController(text: getTextFieldValue(skuItem['warm_face']));
-    TextEditingController wholesaleController = TextEditingController(text: getTextFieldValue(skuItem['wholesale']));
-    TextEditingController mrpController = TextEditingController(text: getTextFieldValue(skuItem['mrp']));
-    TextEditingController avgSaleLastMonthController = TextEditingController(text: getTextFieldValue(skuItem['sale_last_month']));
-    TextEditingController avgSaleLastToLastMonthController = TextEditingController(text: getTextFieldValue(skuItem['sale_last_to_last_month']));
-
-    int saleValue = int.tryParse(skuItem['sale']?.toString() ?? '0') ?? 0; // Initialize properly
-
-    void updateSaleValue() {
-      int openingStock = int.tryParse((skuItem['openstock'] != null && skuItem['openstock'].toString().trim().isNotEmpty)
-              ? skuItem['openstock'].toString()
-              : skuItem['prev_closestock'].toString()) ??
-          0;
-
-      int purchase = double.tryParse(purchaseController.text.trim())?.round() ?? 0;
-
-      if (closingStockController.text.trim().isNotEmpty) {
-        int closingStock = double.tryParse(closingStockController.text.trim())?.round() ?? 0;
-        int calculatedSale = (openingStock + purchase) - closingStock;
-
-        // if (calculatedSale < 0) {
-        //   // ✅ Reset Closing Stock (CS) to 0
-        //   setState(() {
-        //     closingStockController.text = '0'; // Reset CS field
-        //     saleValue = calculatedSale; // Reset Sale value
-        //   });
-        //
-        //   ShowAlert.showAlertDialog(
-        //       context, "Invalid Input", "Sale cannot be negative!\nClosing Stock (CS) has been reset to 0.\n\nPlease check your inputs.");
-        // } else {
-        //   // ✅ Update sale value correctly
-        //   setState(() {
-        //     saleValue = calculatedSale;
-        //   });
-        // }
-        setState(() {
-          saleValue = calculatedSale;
-        });
-      } else {
-        //print("Closing stock is empty on Sale");
-        setState(() {
-          saleValue = openingStock + purchase;
-        });
-      }
-    }
+    TextEditingController stickPriceController = TextEditingController(text: getTextFieldValue(skuItem['stick_price']));
+    TextEditingController packPriceController = TextEditingController(text: getTextFieldValue(skuItem['pack_price']));
+    TextEditingController avgSaleDailyThisWeekController = TextEditingController(text: getTextFieldValue(skuItem['sale_daily_this_week']));
+    TextEditingController avgSaleDailyLastWeekController = TextEditingController(text: getTextFieldValue(skuItem['sale_daily_last_week']));
+    TextEditingController avgSaleDailyLastMonthController = TextEditingController(text: getTextFieldValue(skuItem['sale_daily_last_month']));
 
     void showValueEntryPopup(BuildContext context, String type) {
       final TextEditingController inputController = TextEditingController();
@@ -595,18 +410,9 @@ class _TobaccoSkuListState extends State<TobaccoSkuList> {
                   Parser p = Parser();
                   Expression exp = p.parse(inputController.text);
                   double result = exp.evaluate(EvaluationType.REAL, ContextModel());
-
-                  // Add to previous value
-                  if (type == 'cs') {
-                    double prevValue = double.tryParse(closingStockController.text) ?? 0;
-                    double total = prevValue + result;
-                    closingStockController.text = total.toStringAsFixed(0);
-                  } else {
-                    double prevValue = double.tryParse(purchaseController.text) ?? 0;
-                    double total = prevValue + result;
-                    purchaseController.text = total.toStringAsFixed(0);
-                  }
-                  updateSaleValue();
+                  double prevValue = double.tryParse(purchaseController.text) ?? 0;
+                  double total = prevValue + result;
+                  purchaseController.text = total.toStringAsFixed(0);
                   Navigator.pop(context);
                 } catch (e) {
                   Navigator.pop(context);
@@ -653,52 +459,38 @@ class _TobaccoSkuListState extends State<TobaccoSkuList> {
                     const SizedBox(height: 16),
 
                     _buildNonEditableField(
-                      'Opening Stock (OS)',
-                      (skuItem['openstock'] != null && skuItem['openstock'].toString().trim().isNotEmpty
-                              ? skuItem['openstock']
-                              : skuItem['prev_closestock'])
+                      'Last Audit Date',
+                      (skuItem['last_audit'] != null && skuItem['last_audit'].toString().trim().isNotEmpty
+                              ? skuItem['last_audit']
+                              : skuItem['last_audit'])
+                          .toString(),
+                    ),
+                    _buildNonEditableField(
+                      'Last Purchase',
+                      (skuItem['last_purchase'] != null && skuItem['last_purchase'].toString().trim().isNotEmpty
+                              ? skuItem['last_purchase']
+                              : skuItem['last_purchase'])
                           .toString(),
                     ),
 
                     // Editable Fields
-                    // onChanged: updateSaleValue,
                     _buildEditableField(
-                      'Purchase',
+                      'New Purchase',
                       skuItem['purchase']?.toString() ?? '',
                       itemName,
                       skuItem,
                       controller: purchaseController,
                       onTap: () => showValueEntryPopup(context, 'ps'),
                     ),
-                    _buildEditableField(
-                      'Closing Stock (CS)',
-                      skuItem['closestock']?.toString() ?? '',
-                      itemName,
-                      skuItem,
-                      controller: closingStockController,
-                      onTap: () => showValueEntryPopup(context, 'cs'),
-                    ),
 
-                    // Sale - Non Editable
-                    _buildNonEditableField('Sale', saleValue.toString()),
-
-                    _buildEditableField('Chilled Stock', skuItem['chilled_stock']?.toString() ?? '', itemName, skuItem,
-                        controller: chilledStockController // ✅ Pass the roundUp parameter
-                        ),
-                    _buildEditableField('Chilled Face', skuItem['chilled_face']?.toString() ?? '', itemName, skuItem,
-                        controller: chilledFaceController // ✅ Pass the roundUp parameter
-                        ),
-                    _buildEditableField('Warm Face', skuItem['warm_face']?.toString() ?? '', itemName, skuItem,
-                        controller: warmFaceController // ✅ Pass the roundUp parameter
-                        ),
-                    _buildEditableField('Wholesale (WS)', skuItem['wholesale']?.toString() ?? '', itemName, skuItem,
-                        controller: wholesaleController // ✅ Pass the roundUp parameter
-                        ),
-                    _buildEditableField('MRP', skuItem['mrp']?.toString() ?? '', itemName, skuItem, controller: mrpController),
-                    _buildEditableField('Avg Sale Last Month', skuItem['sale_last_month']?.toString() ?? '', itemName, skuItem,
-                        controller: avgSaleLastMonthController),
-                    _buildEditableField('Avg Sale Last to Last Month', skuItem['sale_last_to_last_month']?.toString() ?? '', itemName, skuItem,
-                        controller: avgSaleLastToLastMonthController),
+                    _buildEditableField('Pack Price', skuItem['pack_price']?.toString() ?? '', itemName, skuItem, controller: packPriceController),
+                    _buildEditableField('Stick Price', skuItem['stick_price']?.toString() ?? '', itemName, skuItem, controller: stickPriceController),
+                    _buildEditableField('Avg Daily Sale This Week', skuItem['sale_daily_this_week']?.toString() ?? '', itemName, skuItem,
+                        controller: avgSaleDailyThisWeekController),
+                    _buildEditableField('Avg Daily Sale Last Week', skuItem['sale_daily_last_week']?.toString() ?? '', itemName, skuItem,
+                        controller: avgSaleDailyLastWeekController),
+                    _buildEditableField('Avg Daily Sale Last Month', skuItem['sale_daily_last_month']?.toString() ?? '', itemName, skuItem,
+                        controller: avgSaleDailyLastMonthController),
 
                     const SizedBox(height: 16),
 
@@ -706,172 +498,52 @@ class _TobaccoSkuListState extends State<TobaccoSkuList> {
                     Center(
                       child: ElevatedButton(
                         onPressed: () async {
-                          if (closingStockController.text.trim().isNotEmpty) {
-                            //print("Closing stock contains data.");
-                            int closingStock = double.tryParse(closingStockController.text.trim())?.round() ?? 0;
-
-                            if (closingStock == 0) {
-                              mrpController.text = '0';
-                            } else {
-                              if (mrpController.text.trim().isNotEmpty) {
-                                double? newMrp = double.tryParse(mrpController.text.trim());
-
-                                double lastMrpFromDb = double.tryParse((skuItem['mrp']?.toString().isNotEmpty == true)
-                                        ? skuItem['mrp'].toString()
-                                        : (skuItem['prev_mrp']?.toString().isNotEmpty == true ? skuItem['prev_mrp'].toString() : '0')) ??
-                                    0;
-
-                                //print('$newMrp _ $lastMrpFromDb _ ${skuItem['prev_mrp']}');
-
-                                if (newMrp == null || newMrp < 0) {
-                                  mrpController.text = lastMrpFromDb.toString();
-                                  return;
-                                }
-
-                                if (lastMrpFromDb != 0.0) {
-                                  double minAllowed = lastMrpFromDb * 0.8, maxAllowed = lastMrpFromDb * 1.2;
-
-                                  if ((newMrp < minAllowed || newMrp > maxAllowed) && !isProceed) {
-                                    _showConfirmationDialog(
-                                            "Invalid MRP",
-                                            "The new MRP ($newMrp) is outside the allowed 20% deviation range of previous MRP ($lastMrpFromDb).\n\n"
-                                                "Allowed range: $minAllowed - $maxAllowed.\n"
-                                                "Do you want to proceed anyway?")
-                                        .then((proceed) {
-                                      if (proceed) {
-                                        // ✅ User chose "Continue", proceed with the update
-                                        //_continueUpdateProcess();
-                                        setState(() {
-                                          isProceed = true;
-                                          mrpController.text = newMrp.toString();
-                                        });
-                                      } else {
-                                        // ✅ User chose "OK", reset MRP
-                                        setState(() {
-                                          isProceed = true;
-                                          mrpController.text = lastMrpFromDb.toString();
-                                        });
-                                      }
-                                    });
-                                    return; // Prevent immediate continuation
-                                  }
-                                }
-                              }
-                            }
-
-                            // Ensure MRP is provided if closing stock > 0
-                            // if (closingStock > 0 && (double.tryParse(mrpController.text.trim()) ?? 0) == 0) {
-                            //   ShowAlert.showAlertDialog(context, "MRP Required", "You must enter an MRP value when Closing Stock is greater than 0.");
-                            // }
-
-                            if (wholesaleController.text.trim().isNotEmpty) {
-                              // wholesale check
-                              int wholesale = double.tryParse(wholesaleController.text.trim())?.round() ?? 0;
-
-                              //print('sal: $saleValue _ $wholesale');
-                              if (wholesale > saleValue) {
-                                // ✅ Show an alert if Wholesale is greater than Sale
-                                ShowAlert.showAlertDialog(
-                                    context, "Invalid Input", "Wholesale cannot be more than Total Sales!\nPlease enter a valid value.");
-                                return; // ✅ Stop execution if validation fails
-                              }
-                            }
-
-                            if (chilledStockController.text.trim().isNotEmpty ||
-                                chilledFaceController.text.trim().isNotEmpty ||
-                                warmFaceController.text.trim().isNotEmpty) {
-                              // wholesale check
-                              int chilledStock = double.tryParse(chilledStockController.text.trim())?.round() ?? 0;
-                              int chilledFace = double.tryParse(chilledFaceController.text.trim())?.round() ?? 0;
-                              int warmFace = double.tryParse(warmFaceController.text.trim())?.round() ?? 0;
-
-                              //print('sd: $closingStock _ $chilledStock _ $chilledFace _ $warmFace');
-                              if (chilledStock > closingStock) {
-                                ShowAlert.showAlertDialog(
-                                    context, "Invalid Input", "Chilled Stock cannot be more than Closing Stock!\nPlease enter a valid value.");
-                                return; // ✅ Stop execution if validation fails
-                              } else if (chilledStock + warmFace > closingStock) {
-                                ShowAlert.showAlertDialog(context, "Invalid Input",
-                                    "Chilled Stock & Warm Face cannot be more than Closing Stock!\nPlease enter a valid value.");
-                                return;
-                              } else if (chilledFace > chilledStock) {
-                                ShowAlert.showAlertDialog(
-                                    context, "Invalid Input", "Chilled Face cannot be more than Chilled Stock!\nPlease enter a valid value.");
-                                return;
-                              } else if (warmFace > closingStock) {
-                                ShowAlert.showAlertDialog(
-                                    context, "Invalid Input", "Warm Face cannot be more than Closing Stock!\nPlease enter a valid value.");
-                                return;
-                              }
-                            }
-                          } else {
-                            //print("Closing stock is empty.");
-                          }
-
                           // ✅ Insert or Update SKU data in the database
-                          await dbManager.insertOrUpdateSdSkuDetails(
-                            widget.dbPath,
-                            widget.storeCode,
-                            widget.auditorId,
-                            skuItem['product_code'],
-                            (skuItem['openstock'] != null && skuItem['openstock'].toString().trim().isNotEmpty
-                                    ? skuItem['openstock']
-                                    : skuItem['prev_closestock'])
-                                .toString(),
-                            purchaseController.text.trim().isNotEmpty
-                                ? (double.tryParse(purchaseController.text.trim())?.round() ?? 0).toString()
-                                : '',
-                            closingStockController.text.trim().isNotEmpty
-                                ? (double.tryParse(closingStockController.text.trim())?.round() ?? 0).toString()
-                                : '',
-                            saleValue.toString(),
-                            chilledStockController.text.trim().isNotEmpty
-                                ? (double.tryParse(chilledStockController.text.trim())?.round() ?? 0).toString()
-                                : '',
-                            chilledFaceController.text.trim().isNotEmpty
-                                ? (double.tryParse(chilledFaceController.text.trim())?.round() ?? 0).toString()
-                                : '',
-                            warmFaceController.text.trim().isNotEmpty
-                                ? (double.tryParse(warmFaceController.text.trim())?.round() ?? 0).toString()
-                                : '',
-                            wholesaleController.text.trim().isNotEmpty
-                                ? (double.tryParse(wholesaleController.text.trim())?.round() ?? 0).toString()
-                                : '',
-                            mrpController.text.trim().isNotEmpty ? mrpController.text : '',
-                            avgSaleLastMonthController.text.trim().isNotEmpty
-                                ? (double.tryParse(avgSaleLastMonthController.text.trim())?.round() ?? 0).toString()
-                                : '',
-                            avgSaleLastToLastMonthController.text.trim().isNotEmpty
-                                ? (double.tryParse(avgSaleLastToLastMonthController.text.trim())?.round() ?? 0).toString()
-                                : '',
-                            skuItem['index'],
-                            widget.period,
-                            1,
-                          );
+                          // await dbManager.insertOrUpdateFmcgSkuDetails(
+                          //   widget.dbPath,
+                          //   widget.storeCode,
+                          //   widget.auditorId,
+                          //   skuItem['product_code'],
+                          //   (skuItem['openstock'] != null && skuItem['openstock'].toString().trim().isNotEmpty
+                          //           ? skuItem['openstock']
+                          //           : skuItem['prev_closestock'])
+                          //       .toString(),
+                          //   purchaseController.text.trim().isNotEmpty
+                          //       ? (double.tryParse(purchaseController.text.trim())?.round() ?? 0).toString()
+                          //       : '',
+                          //   packPriceController.text.trim().isNotEmpty
+                          //       ? (double.tryParse(packPriceController.text.trim())?.round() ?? 0).toString()
+                          //       : '',
+                          //   stickPriceController.text.trim().isNotEmpty
+                          //       ? (double.tryParse(stickPriceController.text.trim())?.round() ?? 0).toString()
+                          //       : '',
+                          //   avgSaleDailyThisWeekController.text.trim().isNotEmpty
+                          //       ? (double.tryParse(avgSaleDailyThisWeekController.text.trim())?.round() ?? 0).toString()
+                          //       : '',
+                          //   avgSaleDailyLastWeekController.text.trim().isNotEmpty
+                          //       ? (double.tryParse(avgSaleDailyLastWeekController.text.trim())?.round() ?? 0).toString()
+                          //       : '',
+                          //   avgSaleDailyLastMonthController.text.trim().isNotEmpty
+                          //       ? (double.tryParse(avgSaleDailyLastMonthController.text.trim())?.round() ?? 0).toString()
+                          //       : '',
+                          //   skuItem['index'],
+                          //   widget.period,
+                          //   1,
+                          // );
 
-                          final closingStock = double.tryParse(closingStockController.text.trim())?.round() ?? 0;
-                          final mrp = double.tryParse(mrpController.text.trim())?.round() ?? 0;
-
-                          if ((closingStock >= 0) &&
-                              purchaseController.text.trim().isNotEmpty &&
-                              closingStockController.text.trim().isNotEmpty &&
-                              mrp >= (closingStock > 0 ? 1 : 0) &&
-                              saleValue >= 0 &&
-                              wholesaleController.text.trim().isNotEmpty &&
-                              chilledStockController.text.trim().isNotEmpty &&
-                              chilledFaceController.text.trim().isNotEmpty &&
-                              warmFaceController.text.trim().isNotEmpty &&
-                              avgSaleLastMonthController.text.trim().isNotEmpty &&
-                              avgSaleLastToLastMonthController.text.trim().isNotEmpty) {
-                            _saveColorStatus(skuItem['product_code'], Colors.green.shade300);
+                          if (purchaseController.text.trim().isNotEmpty &&
+                              packPriceController.text.trim().isNotEmpty &&
+                              stickPriceController.text.trim().isNotEmpty &&
+                              avgSaleDailyThisWeekController.text.trim().isNotEmpty &&
+                              avgSaleDailyLastWeekController.text.trim().isNotEmpty &&
+                              avgSaleDailyLastMonthController.text.trim().isNotEmpty) {
+                            _saveColorStatus(skuItem['product_code'], Colors.yellow.shade300);
                           } else if (purchaseController.text.trim().isNotEmpty ||
-                              closingStockController.text.trim().isNotEmpty ||
-                              mrpController.text.trim().isNotEmpty ||
-                              chilledStockController.text.trim().isNotEmpty ||
-                              chilledFaceController.text.trim().isNotEmpty ||
-                              warmFaceController.text.trim().isNotEmpty ||
-                              avgSaleLastMonthController.text.trim().isNotEmpty ||
-                              avgSaleLastToLastMonthController.text.trim().isNotEmpty) {
+                              packPriceController.text.trim().isNotEmpty ||
+                              stickPriceController.text.trim().isNotEmpty ||
+                              avgSaleDailyThisWeekController.text.trim().isNotEmpty ||
+                              avgSaleDailyLastWeekController.text.trim().isNotEmpty ||
+                              avgSaleDailyLastMonthController.text.trim().isNotEmpty) {
                             _saveColorStatus(skuItem['product_code'], Colors.yellow.shade300);
                           } else {
                             _saveColorStatus(skuItem['product_code'], Colors.grey.shade300);
@@ -898,37 +570,6 @@ class _TobaccoSkuListState extends State<TobaccoSkuList> {
         );
       },
     );
-  }
-
-  Future<bool> _showConfirmationDialog(String title, String message) async {
-    return showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          title: Row(
-            children: [
-              const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 30),
-              const SizedBox(width: 10),
-              Text(title, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          content: Text(message, style: const TextStyle(fontSize: 14)),
-          actions: [
-            // ✅ "OK" Button - Resets MRP and dismisses
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text("Skip", style: TextStyle(color: Colors.blue)),
-            ),
-            // ✅ "Continue" Button - Proceeds with update
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text("Continue", style: TextStyle(color: Colors.green)),
-            ),
-          ],
-        );
-      },
-    ).then((value) => value ?? false); // Ensure `false` if dialog is dismissed without choice
   }
 
   Widget _buildEditableField(
@@ -1064,10 +705,12 @@ class _TobaccoSkuListState extends State<TobaccoSkuList> {
                             ),
                             confirmDismiss: (direction) async {
                               if (direction == DismissDirection.startToEnd) {
-                                if (skuItem['index'] == 'SD') {
-                                  _showSdBottomSheet(skuItem);
-                                } else {
+                                if (widget.priority == 1) {
+                                  _showBottomSheetForTwo(skuItem);
+                                } else if (widget.priority == 2) {
                                   _showBottomSheet(skuItem);
+                                } else {
+                                  //_showBottomSheetForThree(skuItem);
                                 }
                                 return false; // Prevent actual dismiss
                               } else if (direction == DismissDirection.endToStart) {
@@ -1115,10 +758,12 @@ class _TobaccoSkuListState extends State<TobaccoSkuList> {
                             },
                             child: GestureDetector(
                               onTap: () {
-                                if (skuItem['index'] == 'SD') {
-                                  _showSdBottomSheet(skuItem);
-                                } else {
+                                if (widget.priority == 1) {
+                                  _showBottomSheetForTwo(skuItem);
+                                } else if (widget.priority == 2) {
                                   _showBottomSheet(skuItem);
+                                } else {
+                                  //_showBottomSheetForThree(skuItem);
                                 }
                               },
                               child: _buildSkuItem(

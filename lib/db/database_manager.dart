@@ -73,7 +73,7 @@ class DatabaseManager {
       FROM stores s
       JOIN store_schedules ss
       ON s.code = ss.store_code
-      WHERE s.status = 1 AND (ss.`index` = "FMCG" OR ss.`index` = "Fmcg") AND ss.employee_code = ?
+      WHERE s.status = 1 AND (ss.`index` = "FMCG" OR ss.`index` = "Fmcg" OR ss.`index` = "SD" OR ss.`index` = "Sd") AND ss.employee_code = ?
       ORDER BY s.status, ss.date ASC;
     ''', [auditorId]);
 
@@ -555,7 +555,8 @@ class DatabaseManager {
   Future<List<Map<String, dynamic>>> loadFmcgSdProductsAll(String dbPath, String auditorId) async {
     try {
       final db = await loadDatabase(dbPath);
-      final fmcgSdProductsAll = await db.rawQuery('SELECT * FROM products WHERE `index` = "FMCG" OR `index` = "Fmcg" ORDER BY category_name, brand;');
+      final fmcgSdProductsAll = await db.rawQuery(
+          'SELECT * FROM products WHERE `index` = "FMCG" OR `index` = "Fmcg" OR `index` = "SD" OR `index` = "Sd" ORDER BY category_name, brand;');
       await db.close();
       return fmcgSdProductsAll;
     } catch (e) {

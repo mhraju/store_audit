@@ -60,6 +60,8 @@ class _FmcgSdNewEntryState extends State<FmcgSdNewEntry> {
     await Future.delayed(const Duration(seconds: 1));
     final fetchedData = await dbManager.loadFmcgSdProductsAll(widget.dbPath, widget.storeCode);
 
+    print('item Master ${fetchedData.length}');
+
     setState(() {
       skuData = fetchedData;
       filteredSkuData = fetchedData;

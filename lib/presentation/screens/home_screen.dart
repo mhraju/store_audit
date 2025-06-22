@@ -304,7 +304,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 126),
           Image.asset(
             AssetsPath.appLogoSvg,
-            width: 275,
+            width: 250,
             fit: BoxFit.fitWidth,
           ),
           const SizedBox(height: 16),
@@ -332,10 +332,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => FMCGSDStores(
-                            //storeList: storeList,
-                            dbPath: widget.dbPath,
-                            auditorId: widget.auditorId),
+                        builder: (context) => FMCGSDStores(dbPath: widget.dbPath, auditorId: widget.auditorId),
                       ),
                     );
                   } else {

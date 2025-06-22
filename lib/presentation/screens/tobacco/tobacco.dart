@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:store_audit/presentation/screens/tobacco/tobacco_store_list.dart';
+import 'package:store_audit/utility/show_alert.dart';
 
 import '../../../db/database_manager.dart';
 import '../../../service/connectivity.dart';
@@ -68,28 +69,40 @@ class _TobaccoAuditScreenState extends State<TobaccoAuditScreen> {
   void _navigateToNextPage(String title) {
     switch (title) {
       case 'First Visit':
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => TobaccoStoreList(dbPath: widget.dbPath, auditorId: widget.auditorId, priority: 1),
-          ),
-        );
+        if (tobaccoStoreList1!.length > 0) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TobaccoStoreList(dbPath: widget.dbPath, auditorId: widget.auditorId, priority: 1),
+            ),
+          );
+        } else {
+          ShowAlert.showSnackBar(context, 'No store is assigned yet');
+        }
         break;
       case 'Second Visit':
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => TobaccoStoreList(dbPath: widget.dbPath, auditorId: widget.auditorId, priority: 2),
-          ),
-        );
+        if (tobaccoStoreList2!.length > 0) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TobaccoStoreList(dbPath: widget.dbPath, auditorId: widget.auditorId, priority: 2),
+            ),
+          );
+        } else {
+          ShowAlert.showSnackBar(context, 'No store is assigned yet');
+        }
         break;
       case 'Store Audit':
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => TobaccoStoreList(dbPath: widget.dbPath, auditorId: widget.auditorId, priority: 3),
-          ),
-        );
+        if (tobaccoStoreList3!.length > 0) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TobaccoStoreList(dbPath: widget.dbPath, auditorId: widget.auditorId, priority: 3),
+            ),
+          );
+        } else {
+          ShowAlert.showSnackBar(context, 'No store is assigned yet');
+        }
         break;
       default:
         // Default case to handle unexpected titles
@@ -166,7 +179,7 @@ class _TobaccoAuditScreenState extends State<TobaccoAuditScreen> {
                   const SizedBox(height: 56),
                   Image.asset(
                     AssetsPath.appLogoSvg, // Replace with your actual asset
-                    width: 275,
+                    width: 250,
                     fit: BoxFit.fitWidth,
                   ),
                   const SizedBox(height: 16),
