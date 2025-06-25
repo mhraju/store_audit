@@ -572,6 +572,224 @@ class _TobaccoSkuListState extends State<TobaccoSkuList> {
     );
   }
 
+  void _showBottomSheetForThree(Map<String, dynamic> skuItem) {
+    // Extract values safely with default values
+    String itemName = skuItem['item_description'] ?? 'Unknown Item';
+    const SizedBox(height: 24);
+    bool isProceed = false;
+
+    // Helper function to prevent showing "0" and return an empty string instead
+    String getTextFieldValue(dynamic value) {
+      if (value == null || value.toString() == '') {
+        return ''; // Return empty if value is null or "0"
+      }
+      return value.toString(); // Otherwise, return the actual value as a string
+    }
+
+    // Initialize controllers with improved logic
+    TextEditingController purchaseController = TextEditingController(text: getTextFieldValue(skuItem['purchase']));
+    TextEditingController stickPriceController = TextEditingController(text: getTextFieldValue(skuItem['stick_price']));
+    TextEditingController packPriceController = TextEditingController(text: getTextFieldValue(skuItem['pack_price']));
+    TextEditingController avgSaleDailyThisWeekController = TextEditingController(text: getTextFieldValue(skuItem['sale_daily_this_week']));
+    TextEditingController avgSaleDailyLastWeekController = TextEditingController(text: getTextFieldValue(skuItem['sale_daily_last_week']));
+    TextEditingController avgSaleDailyLastMonthController = TextEditingController(text: getTextFieldValue(skuItem['sale_daily_last_month']));
+
+    void showValueEntryPopup(BuildContext context, String type) {
+      final TextEditingController inputController = TextEditingController();
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: const Text("Enter value",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+              )),
+          content: TextField(
+            controller: inputController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+            decoration: InputDecoration(
+              hintText: "type 42+12-5+2",
+              hintStyle: const TextStyle(
+                color: Colors.grey,
+                fontSize: 14,
+              ),
+              filled: true,
+              fillColor: Colors.grey.shade200,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                try {
+                  // Evaluate expression
+                  Parser p = Parser();
+                  Expression exp = p.parse(inputController.text);
+                  double result = exp.evaluate(EvaluationType.REAL, ContextModel());
+                  double prevValue = double.tryParse(purchaseController.text) ?? 0;
+                  double total = prevValue + result;
+                  purchaseController.text = total.toStringAsFixed(0);
+                  Navigator.pop(context);
+                } catch (e) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Invalid expression")),
+                  );
+                }
+              },
+              child: const Text("Add"),
+            )
+          ],
+        ),
+      );
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (BuildContext context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            top: 16,
+          ),
+          child: SafeArea(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Title
+                    Text(
+                      itemName,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    _buildNonEditableField(
+                      'Last Audit Date',
+                      (skuItem['last_audit'] != null && skuItem['last_audit'].toString().trim().isNotEmpty
+                          ? skuItem['last_audit']
+                          : skuItem['last_audit'])
+                          .toString(),
+                    ),
+                    _buildNonEditableField(
+                      'Last Purchase',
+                      (skuItem['last_purchase'] != null && skuItem['last_purchase'].toString().trim().isNotEmpty
+                          ? skuItem['last_purchase']
+                          : skuItem['last_purchase'])
+                          .toString(),
+                    ),
+
+                    // Editable Fields
+                    _buildEditableField(
+                      'New Purchase',
+                      skuItem['purchase']?.toString() ?? '',
+                      itemName,
+                      skuItem,
+                      controller: purchaseController,
+                      onTap: () => showValueEntryPopup(context, 'ps'),
+                    ),
+
+                    _buildEditableField('Pack Price', skuItem['pack_price']?.toString() ?? '', itemName, skuItem, controller: packPriceController),
+                    _buildEditableField('Stick Price', skuItem['stick_price']?.toString() ?? '', itemName, skuItem, controller: stickPriceController),
+                    _buildEditableField('Avg Daily Sale This Week', skuItem['sale_daily_this_week']?.toString() ?? '', itemName, skuItem,
+                        controller: avgSaleDailyThisWeekController),
+                    _buildEditableField('Avg Daily Sale Last Week', skuItem['sale_daily_last_week']?.toString() ?? '', itemName, skuItem,
+                        controller: avgSaleDailyLastWeekController),
+                    _buildEditableField('Avg Daily Sale Last Month', skuItem['sale_daily_last_month']?.toString() ?? '', itemName, skuItem,
+                        controller: avgSaleDailyLastMonthController),
+
+                    const SizedBox(height: 16),
+
+                    // Update Button
+                    Center(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          // ✅ Insert or Update SKU data in the database
+                          // await dbManager.insertOrUpdateFmcgSkuDetails(
+                          //   widget.dbPath,
+                          //   widget.storeCode,
+                          //   widget.auditorId,
+                          //   skuItem['product_code'],
+                          //   (skuItem['openstock'] != null && skuItem['openstock'].toString().trim().isNotEmpty
+                          //           ? skuItem['openstock']
+                          //           : skuItem['prev_closestock'])
+                          //       .toString(),
+                          //   purchaseController.text.trim().isNotEmpty
+                          //       ? (double.tryParse(purchaseController.text.trim())?.round() ?? 0).toString()
+                          //       : '',
+                          //   packPriceController.text.trim().isNotEmpty
+                          //       ? (double.tryParse(packPriceController.text.trim())?.round() ?? 0).toString()
+                          //       : '',
+                          //   stickPriceController.text.trim().isNotEmpty
+                          //       ? (double.tryParse(stickPriceController.text.trim())?.round() ?? 0).toString()
+                          //       : '',
+                          //   avgSaleDailyThisWeekController.text.trim().isNotEmpty
+                          //       ? (double.tryParse(avgSaleDailyThisWeekController.text.trim())?.round() ?? 0).toString()
+                          //       : '',
+                          //   avgSaleDailyLastWeekController.text.trim().isNotEmpty
+                          //       ? (double.tryParse(avgSaleDailyLastWeekController.text.trim())?.round() ?? 0).toString()
+                          //       : '',
+                          //   avgSaleDailyLastMonthController.text.trim().isNotEmpty
+                          //       ? (double.tryParse(avgSaleDailyLastMonthController.text.trim())?.round() ?? 0).toString()
+                          //       : '',
+                          //   skuItem['index'],
+                          //   widget.period,
+                          //   1,
+                          // );
+
+                          if (purchaseController.text.trim().isNotEmpty &&
+                              packPriceController.text.trim().isNotEmpty &&
+                              stickPriceController.text.trim().isNotEmpty &&
+                              avgSaleDailyThisWeekController.text.trim().isNotEmpty &&
+                              avgSaleDailyLastWeekController.text.trim().isNotEmpty &&
+                              avgSaleDailyLastMonthController.text.trim().isNotEmpty) {
+                            _saveColorStatus(skuItem['product_code'], Colors.yellow.shade300);
+                          } else if (purchaseController.text.trim().isNotEmpty ||
+                              packPriceController.text.trim().isNotEmpty ||
+                              stickPriceController.text.trim().isNotEmpty ||
+                              avgSaleDailyThisWeekController.text.trim().isNotEmpty ||
+                              avgSaleDailyLastWeekController.text.trim().isNotEmpty ||
+                              avgSaleDailyLastMonthController.text.trim().isNotEmpty) {
+                            _saveColorStatus(skuItem['product_code'], Colors.yellow.shade300);
+                          } else {
+                            _saveColorStatus(skuItem['product_code'], Colors.grey.shade300);
+                          }
+
+                          ShowAlert.showSnackBar(context, 'SKU item updated successfully');
+                          Navigator.pop(context);
+                          _fetchSkuData();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Update'),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildEditableField(
     String label,
     String value,

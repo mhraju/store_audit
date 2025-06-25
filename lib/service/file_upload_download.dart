@@ -12,12 +12,12 @@ import '../utility/show_alert.dart';
 import '../utility/show_progress.dart';
 
 class FileUploadDownload {
-  Future<void> getSyncStatus(BuildContext context, String dbPath, String auditorId, String page) async {
+  Future<void> getSyncStatus(BuildContext context, String dbPath, String auditorId, String page, String version) async {
     try {
       final DatabaseManager dbManager = DatabaseManager();
       final FileUploadDownload fileUploadDownload = FileUploadDownload();
 
-      final url = Uri.parse('${AssetsPath.baseUrl}api/v1/get-sync-status?code=$auditorId');
+      final url = Uri.parse('${AssetsPath.baseUrl}api/v1/get-sync-status?code=$auditorId&app_version=$version');
       final response = await http.post(url);
 
       final responseData = json.decode(response.body);
@@ -34,7 +34,7 @@ class FileUploadDownload {
 
         if (page == 'home') {
           if (upStatus == 1) {
-            await fileUploadDownload.uploadFile(context, dbPath, auditorId);
+            await fileUploadDownload.uploadFile(context, dbPath, auditorId, version);
             await fileUploadDownload.uploadImages(context, dbPath, auditorId);
           } else {
             ShowAlert.showSnackBar(context, 'Upload unavailable. Please contact the admin.');
@@ -45,7 +45,7 @@ class FileUploadDownload {
         // bool isSameDate = lastDownloadDate.year == today.year && lastDownloadDate.month == today.month && lastDownloadDate.day == today.day;
         // if (isSameDate && dwStatus == 1) {
         if (dwStatus == 1) {
-          String dbUrl = await downloadUpdateDB(context, auditorId);
+          String dbUrl = await downloadUpdateDB(context, auditorId, version);
           await prefs.setString('dbUrl', dbUrl);
           await dbManager.downloadAndSaveUserDatabase();
           await prefs.setInt('dwStatus', 0);
@@ -66,9 +66,9 @@ class FileUploadDownload {
     }
   }
 
-  Future<String> downloadUpdateDB(BuildContext context, String auditorId) async {
+  Future<String> downloadUpdateDB(BuildContext context, String auditorId, String version) async {
     try {
-      final url = Uri.parse('${AssetsPath.baseUrl}api/v1/download-db?code=$auditorId');
+      final url = Uri.parse('${AssetsPath.baseUrl}api/v1/download-db?code=$auditorId&app_version=$version');
       final response = await http.post(url);
 
       if (response.statusCode == 200) {
@@ -97,7 +97,7 @@ class FileUploadDownload {
     }
   }
 
-  Future<void> uploadFile(BuildContext context, String selectedFilePath, String auditorId) async {
+  Future<void> uploadFile(BuildContext context, String selectedFilePath, String auditorId, String version) async {
     try {
       final file = File(selectedFilePath);
       if (!file.existsSync()) {
@@ -121,6 +121,7 @@ class FileUploadDownload {
 
       // Add extra parameters
       request.fields['code'] = auditorId;
+      request.fields['app_version'] = version;
 
       // Send the request
       var response = await request.send();

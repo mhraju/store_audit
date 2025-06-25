@@ -1,10 +1,12 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http; // Add http package
 import 'package:store_audit/presentation/screens/home_screen.dart';
 import 'package:store_audit/service/file_upload_download.dart';
+import 'package:store_audit/utility/app_version.dart';
 import '../../db/database_manager.dart';
 import '../../utility/assets_path.dart';
 import '../../utility/show_progress.dart';
@@ -22,6 +24,20 @@ class _LoginWidgetState extends State<LoginWidget> {
   String _dbPath = '';
   String _auditorId = '';
   String dbUrl = '';
+  String version = '';
+
+  @override
+  void initState() {
+    super.initState();
+    version = AppVersion.getVersion();
+  }
+
+  @override
+  void dispose() {
+    // Example: dispose any controllers or close streams if added in future
+    super.dispose();
+  }
+
   //late Map<String, dynamic> userData;
 
   // Save input data to local storage
@@ -44,7 +60,7 @@ class _LoginWidgetState extends State<LoginWidget> {
   // Function to make an API call
   Future<void> _fetchDatabasePath(String auditorId) async {
     try {
-      final url = Uri.parse('${AssetsPath.baseUrl}api/v1/download-db?code=$auditorId');
+      final url = Uri.parse('${AssetsPath.baseUrl}api/v1/download-db?code=$auditorId&app_version=$version');
       final response = await http.post(url);
 
       final responseData = json.decode(response.body);
@@ -78,7 +94,7 @@ class _LoginWidgetState extends State<LoginWidget> {
 
   Future<void> _checkLogin(String auditorId) async {
     try {
-      final url = Uri.parse('${AssetsPath.baseUrl}api/v1/login?code=$auditorId');
+      final url = Uri.parse('${AssetsPath.baseUrl}api/v1/login?code=$auditorId&app_version=$version');
       final response = await http.post(url);
 
       final responseData = json.decode(response.body);
@@ -196,7 +212,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                   final dbPath = await dbManager.downloadAndSaveUserDatabase();
                   _dbPath = dbPath;
                   _auditorId = auditorId;
-                  await fileUploadDownload.getSyncStatus(context, _dbPath, _auditorId, 'login');
+                  await fileUploadDownload.getSyncStatus(context, _dbPath, _auditorId, 'login', version);
                   _navigateToNextScreen(context);
                 } else {
                   ShowProgress.hideProgressDialog(context);

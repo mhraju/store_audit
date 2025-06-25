@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:store_audit/db/database_manager.dart';
 import 'package:store_audit/presentation/screens/fmcg_sd/fmcg_sd_sku_list.dart';
@@ -11,6 +12,7 @@ import 'package:store_audit/presentation/screens/fmcg_sd/fmcg_sd_store_list.dart
 import 'package:store_audit/presentation/screens/login_screen.dart';
 import 'package:store_audit/presentation/screens/tobacco/tobacco.dart';
 import 'package:store_audit/service/file_upload_download.dart';
+import 'package:store_audit/utility/app_version.dart';
 import 'package:store_audit/utility/assets_path.dart';
 import 'package:store_audit/utility/show_alert.dart';
 
@@ -40,10 +42,12 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = false;
   String lastDownload = '';
   int? downloadStatus;
+  String version = '';
 
   @override
   void initState() {
     super.initState();
+    version = AppVersion.getVersion();
     _fmcgStoreList = widget.fmcgStoreList;
     _getSP();
   }
@@ -94,7 +98,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _syncDatabase() async {
     if (await checkConnection.checkConnection(context) == 'data' || await checkConnection.checkConnection(context) == 'wifi') {
       ShowProgress.showProgressDialogWithMsg(context);
-      await fileUploadDownload.getSyncStatus(context, widget.dbPath, widget.auditorId, 'home');
+      await fileUploadDownload.getSyncStatus(context, widget.dbPath, widget.auditorId, 'home', version);
       ShowProgress.hideProgressDialog(context);
     } else {
       ShowAlert.showSnackBar(context, await checkConnection.checkConnection(context));
@@ -117,6 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
     //   ShowAlert.showSnackBar(context, 'Please enable internet: $e');
     // }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -298,81 +303,101 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHomeContent(List<Map<String, dynamic>> storeList) {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          const SizedBox(height: 126),
-          Image.asset(
-            AssetsPath.appLogoSvg,
-            width: 250,
-            fit: BoxFit.fitWidth,
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Data Collection Application',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.amber,
-              fontFamily: 'Lato',
-              fontSize: 19.5,
-              letterSpacing: 0.6,
-              fontWeight: FontWeight.bold,
-              height: 1.5,
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              children: [
+                const SizedBox(height: 126),
+                Image.asset(
+                  AssetsPath.appLogoSvg,
+                  width: 250,
+                  fit: BoxFit.fitWidth,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Data Collection Application',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.amber,
+                    fontFamily: 'Lato',
+                    fontSize: 19.5,
+                    letterSpacing: 0.6,
+                    fontWeight: FontWeight.bold,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 40),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildOptionCard(
+                      icon: Icons.local_grocery_store,
+                      label: 'FMCG SD',
+                      onTap: () {
+                        if (downloadStatus != 1) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => FMCGSDStores(
+                                dbPath: widget.dbPath,
+                                auditorId: widget.auditorId,
+                              ),
+                            ),
+                          );
+                        } else {
+                          ShowAlert.showSnackBar(context, 'Database is not updated.');
+                        }
+                      },
+                    ),
+                    const SizedBox(width: 20),
+                    _buildOptionCard(
+                      icon: Icons.smoking_rooms,
+                      label: 'Tobacco',
+                      onTap: () {
+                        ShowAlert.showSnackBar(context, 'Development On Going');
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Last updated at: $lastDownload',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.grey,
+                    fontFamily: 'Inter',
+                    fontSize: 14,
+                    letterSpacing: 0.6,
+                    fontWeight: FontWeight.w500,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 30),
+              ],
             ),
           ),
-          const SizedBox(height: 40),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildOptionCard(
-                icon: Icons.local_grocery_store,
-                label: 'FMCG SD',
-                onTap: () {
-                  if (downloadStatus != 1) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => FMCGSDStores(dbPath: widget.dbPath, auditorId: widget.auditorId),
-                      ),
-                    );
-                  } else {
-                    ShowAlert.showSnackBar(context, 'Database is not updated.');
-                  }
-                },
-              ),
-              const SizedBox(width: 20),
-              _buildOptionCard(
-                icon: Icons.smoking_rooms,
-                label: 'Tobacco',
-                onTap: () {
-                  // Navigator.push(
-                  //   context,
-                  //   MaterialPageRoute(
-                  //     builder: (context) => TobaccoAuditScreen(dbPath: widget.dbPath, auditorId: widget.auditorId),
-                  //   ),
-                  // );
-                  ShowAlert.showSnackBar(context, 'Development On Going');
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Last updated at: $lastDownload',
-            textAlign: TextAlign.center,
+        ),
+
+        // Fixed bottom version text
+        Padding(
+          padding: const EdgeInsets.only(bottom: 20),
+          child: version.isNotEmpty
+              ? Text(
+            "Version: $version",
             style: const TextStyle(
               color: Colors.grey,
-              fontFamily: 'Inter',
-              fontSize: 14,
-              letterSpacing: 0.6,
-              fontWeight: FontWeight.w500,
-              height: 1.5,
+              fontSize: 12,
             ),
-          ),
-        ],
-      ),
+          )
+              : const SizedBox.shrink(),
+        ),
+      ],
     );
   }
+
 
   Widget _buildOptionCard({
     required IconData icon,

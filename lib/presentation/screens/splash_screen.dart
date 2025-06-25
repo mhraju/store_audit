@@ -4,6 +4,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:store_audit/presentation/screens/home_screen.dart';
 import 'package:store_audit/presentation/screens/login_screen.dart';
+import 'package:store_audit/utility/app_version.dart';
 import 'package:store_audit/utility/assets_path.dart';
 
 import '../../db/database_manager.dart';
@@ -26,23 +27,8 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _getAppVersion(); // Fetch the app version
+    version = AppVersion.getVersion();
     _moveToNextScreen(); // Navigate to the next screen after the delay
-  }
-
-  // Fetch the app version and build number asynchronously
-  Future<void> _getAppVersion() async {
-    PackageInfo packageInfo = await PackageInfo.fromPlatform();
-    String appVersion = packageInfo.version; // Version name (e.g., 1.0.0)
-    String buildNumber = packageInfo.buildNumber; // Build number (e.g., 1)
-
-    setState(() {
-      version = appVersion; // Update the version
-    });
-
-    // Optional: Print version and build number to console for debugging
-    //print("App Version: $appVersion");
-    //print("Build Number: $buildNumber");
   }
 
   // Move to the next screen after a delay
