@@ -179,22 +179,6 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
       if (closingStockController.text.trim().isNotEmpty) {
         int closingStock = double.tryParse(closingStockController.text.trim())?.round() ?? 0;
         int calculatedSale = (openingStock + purchase) - closingStock;
-
-        // if (calculatedSale < 0) {
-        //   // ✅ Reset Closing Stock (CS) to 0
-        //   setState(() {
-        //     closingStockController.text = '0'; // Reset CS field
-        //     saleValue = calculatedSale; // Reset Sale value
-        //   });
-        //
-        //   ShowAlert.showAlertDialog(
-        //       context, "Invalid Input", "Sale cannot be negative!\nClosing Stock (CS) has been reset to 0.\n\nPlease check your inputs.");
-        // } else {
-        //   // ✅ Update sale value correctly
-        //   setState(() {
-        //     saleValue = calculatedSale;
-        //   });
-        // }
         setState(() {
           saleValue = calculatedSale;
         });
@@ -206,7 +190,9 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
       }
     }
 
-    void showValueEntryPopup(BuildContext context, String type) {
+
+
+    void showValueEntryPopup(BuildContext context, TextEditingController targetController) {
       final TextEditingController inputController = TextEditingController();
 
       showDialog(
@@ -215,18 +201,13 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: const Text("Enter value",
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-              )),
+              style: TextStyle(fontWeight: FontWeight.bold)),
           content: TextField(
             controller: inputController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
             decoration: InputDecoration(
               hintText: "type 42+12-5+2",
-              hintStyle: const TextStyle(
-                color: Colors.grey,
-                fontSize: 14,
-              ),
+              hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
               filled: true,
               fillColor: Colors.grey.shade200,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
@@ -236,21 +217,14 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
             ElevatedButton(
               onPressed: () {
                 try {
-                  // Evaluate expression
                   Parser p = Parser();
-                  Expression exp = p.parse(inputController.text);
+                  Expression exp = p.parse(inputController.text.trim());
                   double result = exp.evaluate(EvaluationType.REAL, ContextModel());
 
-                  // Add to previous value
-                  if (type == 'cs') {
-                    double prevValue = double.tryParse(closingStockController.text) ?? 0;
-                    double total = prevValue + result;
-                    closingStockController.text = total.toStringAsFixed(0);
-                  } else {
-                    double prevValue = double.tryParse(purchaseController.text) ?? 0;
-                    double total = prevValue + result;
-                    purchaseController.text = total.toStringAsFixed(0);
-                  }
+                  double prevValue = double.tryParse(targetController.text) ?? 0;
+                  double total = prevValue + result;
+                  targetController.text = total.toStringAsFixed(0);
+
                   updateSaleValue();
                   Navigator.pop(context);
                 } catch (e) {
@@ -266,6 +240,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
         ),
       );
     }
+
 
     showModalBottomSheet(
       context: context,
@@ -307,22 +282,24 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
 
                     // Editable Fields
                     //onChanged: updateSaleValue
-                    _buildEditableField(
+                    _buildCustomEditableField(
                       'Purchase',
                       skuItem['purchase']?.toString() ?? '',
                       itemName,
                       skuItem,
                       controller: purchaseController,
-                      onTap: () => showValueEntryPopup(context, 'ps'),
+                      onTap: () => showValueEntryPopup(context, purchaseController),
                     ),
-                    _buildEditableField(
-                      'Closing Stock (CS)',
-                      skuItem['closestock']?.toString() ?? '',
+
+                    _buildCustomEditableField(
+                      'Closing Stock',
+                      skuItem['closing_stock']?.toString() ?? '',
                       itemName,
                       skuItem,
                       controller: closingStockController,
-                      onTap: () => showValueEntryPopup(context, 'cs'),
+                      onTap: () => showValueEntryPopup(context, closingStockController),
                     ),
+
 
                     // Sale - Non Editable
                     _buildNonEditableField('Sale', saleValue.toString()),
@@ -558,7 +535,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
       }
     }
 
-    void showValueEntryPopup(BuildContext context, String type) {
+    void showValueEntryPopup(BuildContext context, TextEditingController targetController) {
       final TextEditingController inputController = TextEditingController();
 
       showDialog(
@@ -567,18 +544,13 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: const Text("Enter value",
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-              )),
+              style: TextStyle(fontWeight: FontWeight.bold)),
           content: TextField(
             controller: inputController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
             decoration: InputDecoration(
               hintText: "type 42+12-5+2",
-              hintStyle: const TextStyle(
-                color: Colors.grey,
-                fontSize: 14,
-              ),
+              hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
               filled: true,
               fillColor: Colors.grey.shade200,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
@@ -588,21 +560,14 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
             ElevatedButton(
               onPressed: () {
                 try {
-                  // Evaluate expression
                   Parser p = Parser();
-                  Expression exp = p.parse(inputController.text);
+                  Expression exp = p.parse(inputController.text.trim());
                   double result = exp.evaluate(EvaluationType.REAL, ContextModel());
 
-                  // Add to previous value
-                  if (type == 'cs') {
-                    double prevValue = double.tryParse(closingStockController.text) ?? 0;
-                    double total = prevValue + result;
-                    closingStockController.text = total.toStringAsFixed(0);
-                  } else {
-                    double prevValue = double.tryParse(purchaseController.text) ?? 0;
-                    double total = prevValue + result;
-                    purchaseController.text = total.toStringAsFixed(0);
-                  }
+                  double prevValue = double.tryParse(targetController.text) ?? 0;
+                  double total = prevValue + result;
+                  targetController.text = total.toStringAsFixed(0);
+
                   updateSaleValue();
                   Navigator.pop(context);
                 } catch (e) {
@@ -659,21 +624,23 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
 
                     // Editable Fields
                     // onChanged: updateSaleValue,
-                    _buildEditableField(
+
+                    _buildCustomEditableField(
                       'Purchase',
                       skuItem['purchase']?.toString() ?? '',
                       itemName,
                       skuItem,
                       controller: purchaseController,
-                      onTap: () => showValueEntryPopup(context, 'ps'),
+                      onTap: () => showValueEntryPopup(context, purchaseController),
                     ),
-                    _buildEditableField(
-                      'Closing Stock (CS)',
-                      skuItem['closestock']?.toString() ?? '',
+
+                    _buildCustomEditableField(
+                      'Closing Stock',
+                      skuItem['closing_stock']?.toString() ?? '',
                       itemName,
                       skuItem,
                       controller: closingStockController,
-                      onTap: () => showValueEntryPopup(context, 'cs'),
+                      onTap: () => showValueEntryPopup(context, closingStockController),
                     ),
 
                     // Sale - Non Editable
@@ -927,6 +894,55 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
       },
     ).then((value) => value ?? false); // Ensure `false` if dialog is dismissed without choice
   }
+
+  Widget _buildCustomEditableField(
+      String label,
+      String value,
+      String itemName,
+      Map<String, dynamic> skuItem, {
+        required TextEditingController controller,
+        required VoidCallback onTap,
+      }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16.0), // spacing between fields
+        child: AbsorbPointer(
+          child: TextField(
+            controller: TextEditingController(
+                text: controller.text.isNotEmpty ? controller.text : value),
+            enabled: false, // disables editing but keeps look
+            decoration: InputDecoration(
+              labelText: label,
+              labelStyle: const TextStyle(
+                color: Colors.black54,  // <-- label color
+                //fontWeight: FontWeight.w600,
+              ),
+              filled: true,
+              //fillColor: Colors.white, // matches your light bg
+              border: OutlineInputBorder(
+                borderSide: BorderSide(
+                  color: Colors.grey.shade200,
+                  width: 1,
+                ),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 16,
+                horizontal: 16,
+              ),
+            ),
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.black,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+
 
   Widget _buildEditableField(
     String label,

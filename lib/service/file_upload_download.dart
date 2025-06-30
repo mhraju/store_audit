@@ -198,6 +198,8 @@ class FileUploadDownload {
         return;
       }
 
+      print('Length: ${request.files.length}');
+
       var response = await request.send();
 
       if (response.statusCode == 200) {
