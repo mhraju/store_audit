@@ -165,7 +165,7 @@ class _TobaccoSkuListState extends State<TobaccoSkuList> {
     TextEditingController avgSaleDailyLastWeekController = TextEditingController(text: getTextFieldValue(skuItem['sale_daily_last_week']));
     TextEditingController avgSaleDailyLastMonthController = TextEditingController(text: getTextFieldValue(skuItem['sale_daily_last_month']));
 
-    void showValueEntryPopup(BuildContext context, String type) {
+    void showValueEntryPopup(BuildContext context, TextEditingController targetController) {
       final TextEditingController inputController = TextEditingController();
 
       showDialog(
@@ -174,18 +174,13 @@ class _TobaccoSkuListState extends State<TobaccoSkuList> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: const Text("Enter value",
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-              )),
+              style: TextStyle(fontWeight: FontWeight.bold)),
           content: TextField(
             controller: inputController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
             decoration: InputDecoration(
               hintText: "type 42+12-5+2",
-              hintStyle: const TextStyle(
-                color: Colors.grey,
-                fontSize: 14,
-              ),
+              hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
               filled: true,
               fillColor: Colors.grey.shade200,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
@@ -195,13 +190,15 @@ class _TobaccoSkuListState extends State<TobaccoSkuList> {
             ElevatedButton(
               onPressed: () {
                 try {
-                  // Evaluate expression
                   Parser p = Parser();
-                  Expression exp = p.parse(inputController.text);
+                  Expression exp = p.parse(inputController.text.trim());
                   double result = exp.evaluate(EvaluationType.REAL, ContextModel());
-                  double prevValue = double.tryParse(purchaseController.text) ?? 0;
+
+                  double prevValue = double.tryParse(targetController.text) ?? 0;
                   double total = prevValue + result;
-                  purchaseController.text = total.toStringAsFixed(0);
+                  targetController.text = total.toStringAsFixed(0);
+
+                  //updateSaleValue();
                   Navigator.pop(context);
                 } catch (e) {
                   Navigator.pop(context);
@@ -256,14 +253,15 @@ class _TobaccoSkuListState extends State<TobaccoSkuList> {
                     ),
 
                     // Editable Fields
-                    _buildEditableField(
+                    _buildCustomEditableField(
                       'Purchase',
                       skuItem['purchase']?.toString() ?? '',
                       itemName,
                       skuItem,
                       controller: purchaseController,
-                      onTap: () => showValueEntryPopup(context, 'ps'),
+                      onTap: () => showValueEntryPopup(context, purchaseController),
                     ),
+
 
                     _buildEditableField('Pack Price', skuItem['pack_price']?.toString() ?? '', itemName, skuItem, controller: packPriceController),
                     _buildEditableField('Stick Price', skuItem['stick_price']?.toString() ?? '', itemName, skuItem, controller: stickPriceController),
@@ -787,6 +785,54 @@ class _TobaccoSkuListState extends State<TobaccoSkuList> {
           ),
         );
       },
+    );
+  }
+
+
+  Widget _buildCustomEditableField(
+      String label,
+      String value,
+      String itemName,
+      Map<String, dynamic> skuItem, {
+        required TextEditingController controller,
+        required VoidCallback onTap,
+      }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16.0), // spacing between fields
+        child: AbsorbPointer(
+          child: TextField(
+            controller: TextEditingController(
+                text: controller.text.isNotEmpty ? controller.text : value),
+            enabled: false, // disables editing but keeps look
+            decoration: InputDecoration(
+              labelText: label,
+              labelStyle: const TextStyle(
+                color: Colors.black54,  // <-- label color
+                //fontWeight: FontWeight.w600,
+              ),
+              filled: true,
+              //fillColor: Colors.white, // matches your light bg
+              border: OutlineInputBorder(
+                borderSide: BorderSide(
+                  color: Colors.grey.shade200,
+                  width: 1,
+                ),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 16,
+                horizontal: 16,
+              ),
+            ),
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.black,
+            ),
+          ),
+        ),
+      ),
     );
   }
 

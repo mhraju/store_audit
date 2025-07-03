@@ -39,6 +39,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
   final DatabaseManager dbManager = DatabaseManager();
   Map<String, Color> skuItemColors = {}; // ✅ Store colors for each SKU item
   late List<String> savedSkus;
+  Color saleValueColor = Colors.black54;
 
   @override
   void initState() {
@@ -169,10 +170,11 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
     // print('Check mrp ${skuItem['mrp']} ---- ${skuItem['prev_mrp']}');
 
     void updateSaleValue() {
-      int openingStock = int.tryParse((skuItem['openstock'] != null && skuItem['openstock'].toString().trim().isNotEmpty)
+      int openingStock = int.tryParse(
+          (skuItem['openstock'] != null && skuItem['openstock'].toString().trim().isNotEmpty)
               ? skuItem['openstock'].toString()
-              : skuItem['prev_closestock'].toString()) ??
-          0;
+              : skuItem['prev_closestock'].toString()
+      ) ?? 0;
 
       int purchase = double.tryParse(purchaseController.text.trim())?.round() ?? 0;
 
@@ -181,11 +183,20 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
         int calculatedSale = (openingStock + purchase) - closingStock;
         setState(() {
           saleValue = calculatedSale;
+          if(saleValue<0){
+            saleValueColor = Colors.red;
+          }else{
+            saleValueColor = Colors.black54;
+          }
         });
       } else {
-        //print("Closing stock is empty on Sale");
         setState(() {
           saleValue = openingStock + purchase;
+          if(saleValue<0){
+            saleValueColor = Colors.red;
+          }else{
+            saleValueColor = Colors.black54;
+          }
         });
       }
     }
@@ -302,7 +313,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
 
 
                     // Sale - Non Editable
-                    _buildNonEditableField('Sale', saleValue.toString()),
+                    _buildNonEditableField('Sale', saleValue.toString(),valueColor: saleValueColor),
 
                     _buildEditableField('Wholesale (WS)', skuItem['wholesale']?.toString() ?? '', itemName, skuItem,
                         controller: wholesaleController // ✅ Pass the roundUp parameter
@@ -498,39 +509,33 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
     int saleValue = int.tryParse(skuItem['sale']?.toString() ?? '0') ?? 0; // Initialize properly
 
     void updateSaleValue() {
-      int openingStock = int.tryParse((skuItem['openstock'] != null && skuItem['openstock'].toString().trim().isNotEmpty)
+      int openingStock = int.tryParse(
+          (skuItem['openstock'] != null && skuItem['openstock'].toString().trim().isNotEmpty)
               ? skuItem['openstock'].toString()
-              : skuItem['prev_closestock'].toString()) ??
-          0;
+              : skuItem['prev_closestock'].toString()
+      ) ?? 0;
 
       int purchase = double.tryParse(purchaseController.text.trim())?.round() ?? 0;
 
       if (closingStockController.text.trim().isNotEmpty) {
         int closingStock = double.tryParse(closingStockController.text.trim())?.round() ?? 0;
         int calculatedSale = (openingStock + purchase) - closingStock;
-
-        // if (calculatedSale < 0) {
-        //   // ✅ Reset Closing Stock (CS) to 0
-        //   setState(() {
-        //     closingStockController.text = '0'; // Reset CS field
-        //     saleValue = calculatedSale; // Reset Sale value
-        //   });
-        //
-        //   ShowAlert.showAlertDialog(
-        //       context, "Invalid Input", "Sale cannot be negative!\nClosing Stock (CS) has been reset to 0.\n\nPlease check your inputs.");
-        // } else {
-        //   // ✅ Update sale value correctly
-        //   setState(() {
-        //     saleValue = calculatedSale;
-        //   });
-        // }
         setState(() {
           saleValue = calculatedSale;
+          if(saleValue<0){
+            saleValueColor = Colors.red;
+          }else{
+            saleValueColor = Colors.black54;
+          }
         });
       } else {
-        //print("Closing stock is empty on Sale");
         setState(() {
           saleValue = openingStock + purchase;
+          if(saleValue<0){
+            saleValueColor = Colors.red;
+          }else{
+            saleValueColor = Colors.black54;
+          }
         });
       }
     }
@@ -644,7 +649,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                     ),
 
                     // Sale - Non Editable
-                    _buildNonEditableField('Sale', saleValue.toString()),
+                    _buildNonEditableField('Sale', saleValue.toString(), valueColor: saleValueColor),
 
                     _buildEditableField('Chilled Stock', skuItem['chilled_stock']?.toString() ?? '', itemName, skuItem,
                         controller: chilledStockController // ✅ Pass the roundUp parameter
@@ -973,17 +978,40 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
     );
   }
 
-  Widget _buildNonEditableField(String label, String value) {
+  Widget _buildNonEditableField(String label, String value, {Color? valueColor}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: TextField(
         controller: TextEditingController(text: value),
         readOnly: true,
+        style: TextStyle(
+          color: valueColor ?? Colors.black,
+        ),
         decoration: InputDecoration(
           labelText: label,
-          border: const OutlineInputBorder(),
           filled: true,
           fillColor: Colors.grey.shade200,
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(
+              color: valueColor ?? Colors.grey,
+              width: 1.5,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(
+              color: valueColor ?? Colors.grey,
+              width: 1.5,
+            ),
+          ),
+          // border: OutlineInputBorder(
+          //   borderRadius: BorderRadius.circular(8),
+          //   borderSide: BorderSide(
+          //     color: valueColor ?? Colors.grey,
+          //     width: 1.5,
+          //   ),
+          // ),
         ),
       ),
     );
