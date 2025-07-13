@@ -232,10 +232,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> loadUserDataFromPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     _showProfileBottomSheet(context, prefs.getString('code'), prefs.getString('name'), prefs.getString('phone'), prefs.getString('designation'),
-        prefs.getString('supervisor_name'), prefs.getString('zone'));
+        prefs.getString('supervisor_name'), prefs.getString('zone'), prefs.getString('head_quarter'));
   }
 
-  void _showProfileBottomSheet(BuildContext context, code, name, phone, designation, supervisor_name, zone) {
+  void _showProfileBottomSheet(BuildContext context, code, name, phone, designation, supervisor_name, zone, head_quarter) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -277,6 +277,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ListTile(
                   leading: const Icon(Icons.location_searching),
                   title: Text(zone),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.location_city),
+                  title: Text(head_quarter),
                 ),
                 const SizedBox(height: 24), // Extra space at bottom
               ],

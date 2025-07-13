@@ -139,6 +139,13 @@ class DatabaseManager {
     String selfie,
     String attachment,
     int priority,
+    String auditStart,
+    String auditEnd,
+    String remarks,
+    String storeAddress,
+    String storeClass,
+    String supplyIssue,
+    String marketActivities,
   ) async {
     try {
       // Open the database
@@ -164,6 +171,13 @@ class DatabaseManager {
           'selfie': selfie,
           'status': status,
           'attachment': attachment,
+          'audit_start': auditStart,
+          'audit_end': auditEnd,
+          'remarks': remarks,
+          'store_address': storeAddress,
+          'store_class': storeClass,
+          'supply_issue': supplyIssue,
+          'market_activities': marketActivities,
           'update_status': updateStatus,
           'updated_at': DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
         },

@@ -16,6 +16,7 @@ class FmcgSdSkuList extends StatefulWidget {
   final String shortCode;
   final String storeName;
   final String period;
+  final String auditStart;
   const FmcgSdSkuList({
     super.key,
     required this.dbPath,
@@ -24,7 +25,7 @@ class FmcgSdSkuList extends StatefulWidget {
     required this.option,
     required this.shortCode,
     required this.storeName,
-    required this.period,
+    required this.period, required this.auditStart,
   });
 
   @override
@@ -1199,6 +1200,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
                                     shortCode: widget.shortCode,
                                     storeName: widget.storeName,
                                     period: widget.period,
+                                auditStart: widget.auditStart,
                                   )),
                         ).then((value) {
                           _fetchSkuData(); // Call method to refresh database data
@@ -1263,6 +1265,7 @@ class _FmcgSdSkuListState extends State<FmcgSdSkuList> {
           option: widget.option,
           shortCode: widget.shortCode,
           storeName: widget.storeName,
+          auditStart: widget.auditStart,
         ),
       ),
     );

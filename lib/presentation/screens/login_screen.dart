@@ -54,6 +54,7 @@ class _LoginWidgetState extends State<LoginWidget> {
     await prefs.setString('designation', userData['designation']);
     await prefs.setString('supervisor_name', userData['supervisor_name']);
     await prefs.setString('zone', userData['zone']);
+    await prefs.setString('head_quarter', settings['head_quarter'] ?? '');
     await prefs.setInt('geo_fence', settings['geo_fance_radius']);
   }
 

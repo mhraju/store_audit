@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img; // Import the image package
 import 'package:geolocator/geolocator.dart';
@@ -46,6 +47,7 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
   String store_photo = "";
   double? userLatitude;
   double? userLongitude;
+  String? auditStart;
 
   late String _storeName;
   late String _contact;
@@ -256,52 +258,72 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
                     const SizedBox(height: 20),
                     Text(
                       'Store Code: ${widget.storeData['code'] ?? 'N/A'}',
-                      style: const TextStyle(fontSize: 16),
+                      style: const TextStyle(fontSize: 14),
                     ),
                     const SizedBox(height: 10),
                     Text(
                       'Contact Number: $_contact',
-                      style: const TextStyle(fontSize: 16),
+                      style: const TextStyle(fontSize: 14),
                     ),
                     const SizedBox(height: 10),
                     Text(
                       'Division: ${widget.storeData['division'] ?? 'N/A'}',
-                      style: const TextStyle(fontSize: 16),
+                      style: const TextStyle(fontSize: 14),
                     ),
                     const SizedBox(height: 10),
                     Text(
                       'District: ${widget.storeData['district'] ?? 'N/A'}',
-                      style: const TextStyle(fontSize: 16),
+                      style: const TextStyle(fontSize: 14),
                     ),
                     const SizedBox(height: 10),
                     Text(
                       'Thana: ${widget.storeData['thana'] ?? 'N/A'}',
-                      style: const TextStyle(fontSize: 16),
+                      style: const TextStyle(fontSize: 14),
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      'Area: ${widget.storeData['area_village_name'] ?? 'N/A'}',
-                      style: const TextStyle(fontSize: 16),
+                      'Urbanity: ${widget.storeData['urbanity'] ?? 'N/A'}',
+                      style: const TextStyle(fontSize: 14),
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      'Union: ${widget.storeData['union_ward'] ?? 'N/A'}',
-                      style: const TextStyle(fontSize: 16),
+                      'Union / Ward: ${widget.storeData['union_ward'] ?? 'N/A'}',
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Town Name: ${widget.storeData['town_name'] ?? 'N/A'}',
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Village Name: ${widget.storeData['area_village_name'] ?? 'N/A'}',
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Bazar / Market Name: ${widget.storeData['bazar_market_name'] ?? 'N/A'}',
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Non Bazar Area Name: ${widget.storeData['non_bazar_area'] ?? 'N/A'}',
+                      style: const TextStyle(fontSize: 14),
                     ),
                     const SizedBox(height: 10),
                     Text(
                       'Address: $_detailAddress',
-                      style: const TextStyle(fontSize: 16),
+                      style: const TextStyle(fontSize: 14),
                     ),
                     const SizedBox(height: 10),
                     Text(
                       'Landmark: ${widget.storeData['land_mark'] ?? 'N/A'}',
-                      style: const TextStyle(fontSize: 16),
+                      style: const TextStyle(fontSize: 14),
                     ),
                     const SizedBox(height: 10),
                     Text(
                       'Shop type: ${widget.storeData['shop_type'] ?? 'N/A'}',
-                      style: const TextStyle(fontSize: 16),
+                      style: const TextStyle(fontSize: 14),
                     ),
                     const SizedBox(height: 16),
 
@@ -318,7 +340,7 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: Colors.blue,
-                              fontSize: 16,
+                              fontSize: 14,
                             ),
                           ),
                         ),
@@ -329,93 +351,101 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
             ),
           ),
 
+
           // Bottom navigation buttons
           if (otpVerified || (isInsideGeofence && !isLoading))
-            Container(
-              height: 80,
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewPadding.bottom > 0
-                    ? MediaQuery.of(context).viewPadding.bottom
-                    : 16, // Ensure enough space if no padding exists
-              ),
-              decoration: const BoxDecoration(
-                color: AppColors.bottomNavBarColor,
-                border: Border(
-                  top: BorderSide(
-                    color: AppColors.bottomNavBorderColor,
+            (() {
+              auditStart ??= DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()); // side effect
+              //print('start time: $auditStart');
+              return Container(
+                height: 80,
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewPadding.bottom > 0
+                      ? MediaQuery.of(context).viewPadding.bottom
+                      : 16, // Ensure enough space if no padding exists
+                ),
+                decoration: const BoxDecoration(
+                  color: AppColors.bottomNavBarColor,
+                  border: Border(
+                    top: BorderSide(
+                      color: AppColors.bottomNavBorderColor,
+                    ),
                   ),
                 ),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: InkWell(
-                      onTap: _showEditBottomSheet,
-                      child: const Center(
-                        child: Text(
-                          'Edit',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: _showEditBottomSheet,
+                        child: const Center(
+                          child: Text(
+                            'Edit',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  Container(
-                    width: 1,
-                    height: 40,
-                    color: Colors.grey.shade200,
-                  ),
-                  Expanded(
-                    child: InkWell(
-                      onTap: () {
-                        // Navigator.push(
-                        //   context,
-                        //   MaterialPageRoute(
-                        //     builder: (context) => const StoreClose(),
-                        //   ),
-                        // );
-                        if (_option == 'Temporary Closed (TC)' || _option == 'Permanent Closed (PC)') {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => FmcgSdStoreAudit(
-                                dbPath: widget.dbPath,
-                                storeCode: widget.storeData['code'],
-                                auditorId: widget.auditorId,
-                                option: widget.option,
-                                shortCode: widget.shortCode,
-                                storeName: _storeName,
+                    Container(
+                      width: 1,
+                      height: 40,
+                      color: Colors.grey.shade200,
+                    ),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          // Navigator.push(
+                          //   context,
+                          //   MaterialPageRoute(
+                          //     builder: (context) => const StoreClose(),
+                          //   ),
+                          // );
+                          if (_option == 'Temporary Closed (TC)' || _option == 'Permanent Closed (PC)') {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => FmcgSdStoreAudit(
+                                  dbPath: widget.dbPath,
+                                  storeCode: widget.storeData['code'],
+                                  auditorId: widget.auditorId,
+                                  option: widget.option,
+                                  shortCode: widget.shortCode,
+                                  storeName: _storeName,
+                                  auditStart: auditStart!,
+                                ),
                               ),
-                            ),
-                          );
-                          //Get.to(() => StoreClose(item: item));
-                        } else {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => FmcgSdSkuList(
-                                dbPath: widget.dbPath,
-                                storeCode: widget.storeData['code'],
-                                auditorId: widget.auditorId,
-                                option: _option,
-                                shortCode: widget.shortCode,
-                                storeName: _storeName,
-                                period: widget.storeData['period'],
+                            );
+                            //Get.to(() => StoreClose(item: item));
+                          } else {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => FmcgSdSkuList(
+                                  dbPath: widget.dbPath,
+                                  storeCode: widget.storeData['code'],
+                                  auditorId: widget.auditorId,
+                                  option: _option,
+                                  shortCode: widget.shortCode,
+                                  storeName: _storeName,
+                                  period: widget.storeData['period'],
+                                  auditStart: auditStart!,
+                                ),
                               ),
-                            ),
-                          );
-                        }
-                      },
-                      child: const Center(
-                        child: Text(
-                          'Next',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),
+                            );
+                          }
+                        },
+                        child: const Center(
+                          child: Text(
+                            'Next',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
+                  ],
+                ),
+              );
+            })(),
+
         ],
       ),
     );
@@ -539,7 +569,7 @@ class _FmcgSdStoreDetailsState extends State<FmcgSdStoreDetails> {
                   Text(
                     'Lat: ${userLatitude ?? 'Loading...'}, Lon: ${userLongitude ?? 'Loading...'}',
                     style: const TextStyle(
-                      fontSize: 16,
+                      fontSize: 14,
                     ),
                   ),
                   const SizedBox(height: 24),

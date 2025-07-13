@@ -15,6 +15,7 @@ class FmcgSdNewEntry extends StatefulWidget {
   final String shortCode;
   final String storeName;
   final String period;
+  final String auditStart;
   const FmcgSdNewEntry({
     super.key,
     required this.dbPath,
@@ -23,7 +24,7 @@ class FmcgSdNewEntry extends StatefulWidget {
     required this.option,
     required this.shortCode,
     required this.storeName,
-    required this.period,
+    required this.period, required this.auditStart,
   });
 
   @override
@@ -304,6 +305,7 @@ class _FmcgSdNewEntryState extends State<FmcgSdNewEntry> {
                               shortCode: widget.shortCode,
                               storeName: widget.storeName,
                               period: widget.period,
+                              auditStart: widget.auditStart,
                             ),
                           ),
                         );
@@ -360,6 +362,7 @@ class _FmcgSdNewEntryState extends State<FmcgSdNewEntry> {
           shortCode: widget.shortCode,
           storeName: widget.storeName,
           period: widget.period,
+          auditStart: widget.auditStart,
         ),
       ),
     );

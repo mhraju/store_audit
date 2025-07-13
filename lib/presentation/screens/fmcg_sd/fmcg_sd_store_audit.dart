@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
@@ -18,6 +19,7 @@ class FmcgSdStoreAudit extends StatefulWidget {
   final String option;
   final String shortCode;
   final String storeName;
+  final String auditStart;
   const FmcgSdStoreAudit({
     super.key,
     required this.dbPath,
@@ -25,7 +27,7 @@ class FmcgSdStoreAudit extends StatefulWidget {
     required this.auditorId,
     required this.option,
     required this.shortCode,
-    required this.storeName,
+    required this.storeName, required this.auditStart,
   });
 
   @override
@@ -34,6 +36,10 @@ class FmcgSdStoreAudit extends StatefulWidget {
 
 class _FmcgSdStoreAuditState extends State<FmcgSdStoreAudit> {
   final _remarksController = TextEditingController();
+  final _storeAddressController = TextEditingController();
+  final _storeClassController = TextEditingController();
+  final _supplyIssuerController = TextEditingController();
+  final _marketActivitiesController = TextEditingController();
   final List<File> _imageFiles = [];
   List<String> imagePaths = [];
   File? _selfieImage;
@@ -41,6 +47,7 @@ class _FmcgSdStoreAuditState extends State<FmcgSdStoreAudit> {
   bool _isUploading = false;
   final DatabaseManager dbManager = DatabaseManager();
   late Map<String, dynamic> _storeData;
+  String? auditEnd;
 
   @override
   void initState() {
@@ -55,7 +62,23 @@ class _FmcgSdStoreAuditState extends State<FmcgSdStoreAudit> {
       return;
     }
     if (_remarksController.text.isEmpty) {
-      ShowAlert.showSnackBar(context, 'Please enter remarks before submitting.');
+      ShowAlert.showSnackBar(context, 'Please write remarks before submitting.');
+      return;
+    }
+    if (_storeAddressController.text.isEmpty) {
+      ShowAlert.showSnackBar(context, 'Please write store address before submitting.');
+      return;
+    }
+    if (_storeClassController.text.isEmpty) {
+      ShowAlert.showSnackBar(context, 'Please write store class before submitting.');
+      return;
+    }
+    if (_supplyIssuerController.text.isEmpty) {
+      ShowAlert.showSnackBar(context, 'Please write supply issue before submitting.');
+      return;
+    }
+    if (_marketActivitiesController.text.isEmpty) {
+      ShowAlert.showSnackBar(context, 'Please write market activities before submitting.');
       return;
     }
 
@@ -85,6 +108,8 @@ class _FmcgSdStoreAuditState extends State<FmcgSdStoreAudit> {
     await prefs.setStringList('editedItems', []);
     await prefs.setStringList('newEntry', []);
 
+    auditEnd ??= DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
+
     await dbManager.closeOrUpdateStore(
       dbPath,
       widget.storeCode,
@@ -96,7 +121,15 @@ class _FmcgSdStoreAuditState extends State<FmcgSdStoreAudit> {
       p.basename(_selfieImage!.path),
       imagePaths.where((e) => e.trim().isNotEmpty).join(','), // Use comma-separated string
       1,
+      widget.auditStart,
+      auditEnd!,
+      _remarksController.text,
+      _storeAddressController.text,
+      _storeClassController.text,
+      _supplyIssuerController.text,
+      _marketActivitiesController.text,
     );
+
 
     ShowAlert.showSnackBar(context, 'Store is updated successfully!');
 
@@ -205,7 +238,6 @@ class _FmcgSdStoreAuditState extends State<FmcgSdStoreAudit> {
   }
 
   @override
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -266,6 +298,47 @@ class _FmcgSdStoreAuditState extends State<FmcgSdStoreAudit> {
                           ),
                         ),
                         const SizedBox(height: 16.0),
+
+                        TextField(
+                          controller: _storeAddressController,
+                          maxLines: 3,
+                          decoration: const InputDecoration(
+                            hintText: 'Store Address...',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 16.0),
+
+                        TextField(
+                          controller: _storeClassController,
+                          maxLines: 3,
+                          decoration: const InputDecoration(
+                            hintText: 'Store Class...',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 16.0),
+
+                        TextField(
+                          controller: _supplyIssuerController,
+                          maxLines: 3,
+                          decoration: const InputDecoration(
+                            hintText: 'Supply Issue...',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 16.0),
+
+                        TextField(
+                          controller: _marketActivitiesController,
+                          maxLines: 3,
+                          decoration: const InputDecoration(
+                            hintText: 'Market Activities...',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 16.0),
+
 
                         /// **Image Display with Remove Option**
                         Wrap(

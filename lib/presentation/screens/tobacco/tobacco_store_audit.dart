@@ -87,18 +87,18 @@ class _TobaccoStoreAuditState extends State<TobaccoStoreAudit> {
     await prefs.setStringList('editedItems', []);
     await prefs.setStringList('newEntry', []);
 
-    await dbManager.closeOrUpdateStore(
-      dbPath,
-      widget.storeCode,
-      widget.auditorId,
-      1,
-      1,
-      widget.option,
-      widget.shortCode,
-      p.basename(_selfieImage!.path),
-      imagePaths.where((e) => e.trim().isNotEmpty).join(','), // Use comma-separated string
-      widget.priority,
-    );
+    // await dbManager.closeOrUpdateStore(
+    //   dbPath,
+    //   widget.storeCode,
+    //   widget.auditorId,
+    //   1,
+    //   1,
+    //   widget.option,
+    //   widget.shortCode,
+    //   p.basename(_selfieImage!.path),
+    //   imagePaths.where((e) => e.trim().isNotEmpty).join(','), // Use comma-separated string
+    //   widget.priority,
+    // );
 
     ShowAlert.showSnackBar(context, 'Store is updated successfully!');
 
